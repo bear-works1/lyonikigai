@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ledger — a weekly practice for learning business</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;}
+  #root{min-height:100vh;}
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+.ledger-app{
+  --paper:#F1EFE6;
+  --paper-line:#D8D2BE;
+  --paper-dark:#E6E2D2;
+  --ink:#1F2A24;
+  --ink-soft:#5B6B5E;
+  --forest:#2F5233;
+  --forest-dark:#1E3A21;
+  --brass:#A67C3D;
+  --brass-light:#C9A567;
+  --red-ink:#8B3A3A;
+  font-family:'IBM Plex Sans',sans-serif;
+  color:var(--ink);
+  background:var(--paper);
+  min-height:100vh;
+  padding:0;
+}
+.ledger-app *{box-sizing:border-box;}
+.wrap{max-width:760px;margin:0 auto;padding:28px 20px 60px;}
+.header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;}
+.wordmark{font-family:'Fraunces',serif;font-weight:600;font-size:34px;letter-spacing:-0.02em;color:var(--forest-dark);line-height:1;}
+.tagline{font-size:12.5px;color:var(--ink-soft);margin-top:6px;letter-spacing:0.02em;}
+.sync{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink-soft);margin-top:6px;}
+.sync b{color:var(--forest-dark);font-weight:500;}
+.sync.err{color:var(--red-ink);}
+.week-bar{background:var(--paper-dark);border:1px solid var(--paper-line);border-radius:3px;padding:14px 16px;margin-bottom:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.week-bar label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);}
+.week-input{flex:1;min-width:160px;border:none;background:transparent;border-bottom:1.5px dashed var(--paper-line);font-family:'Fraunces',serif;font-size:17px;color:var(--ink);padding:4px 2px;outline:none;}
+.week-input:focus{border-bottom-color:var(--forest);}
+.tabs{display:flex;gap:2px;margin-bottom:0;}
+.tab-btn{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;padding:10px 18px;border:1px solid var(--paper-line);border-bottom:none;background:var(--paper-dark);color:var(--ink-soft);cursor:pointer;border-radius:4px 4px 0 0;position:relative;top:1px;}
+.tab-btn.active{background:var(--paper);color:var(--forest-dark);font-weight:600;border-color:var(--paper-line);}
+.page{background:var(--paper);border:1px solid var(--paper-line);border-radius:0 4px 4px 4px;padding:24px 22px;position:relative;
+  background-image:repeating-linear-gradient(var(--paper) 0px, var(--paper) 30px, var(--paper-line) 31px);
+}
+.page-inner{position:relative;z-index:1;}
+.section-title{font-family:'Fraunces',serif;font-size:19px;color:var(--forest-dark);margin:0 0 4px;}
+.section-sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;}
+.add-row{display:flex;gap:8px;margin-bottom:14px;}
+.text-input{flex:1;border:1px solid var(--paper-line);background:#fff;padding:9px 11px;border-radius:3px;font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;color:var(--ink);outline:none;}
+.text-input:focus{border-color:var(--forest);}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;background:var(--forest);color:var(--paper);border:none;padding:0 16px;height:38px;border-radius:3px;cursor:pointer;white-space:nowrap;}
+.btn:hover{background:var(--forest-dark);}
+.btn:disabled{background:#B7BEB4;cursor:not-allowed;}
+.challenge-list{list-style:none;padding:0;margin:0;}
+.challenge{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--paper-line);}
+.challenge:last-child{border-bottom:none;}
+.check{width:17px;height:17px;border:1.5px solid var(--forest);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;}
+.check.done{background:var(--forest);}
+.check.done::after{content:'✓';color:var(--paper);font-size:12px;line-height:1;}
+.challenge-text{flex:1;font-size:14px;}
+.challenge-text.done{text-decoration:line-through;color:var(--ink-soft);}
+.remove{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 6px;}
+.remove:hover{color:var(--red-ink);}
+.empty{color:var(--ink-soft);font-size:13.5px;font-style:italic;padding:6px 2px;}
+.stamp-wrap{display:flex;justify-content:center;padding:18px 0 4px;}
+.stamp{
+  width:118px;height:118px;border-radius:50%;
+  border:3px solid var(--brass);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transform:rotate(-8deg);
+  color:var(--brass);
+  font-family:'IBM Plex Mono',monospace;
+  letter-spacing:0.06em;
+  animation:stampIn 0.4s cubic-bezier(.2,1.4,.4,1);
+  position:relative;
+}
+.stamp::before{content:'';position:absolute;inset:8px;border:1px solid var(--brass-light);border-radius:50%;}
+.stamp-top{font-size:10px;text-transform:uppercase;}
+.stamp-mid{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin:2px 0;}
+.stamp-bot{font-size:8.5px;text-transform:uppercase;}
+@keyframes stampIn{0%{transform:rotate(-8deg) scale(2.4);opacity:0;}70%{opacity:1;}100%{transform:rotate(-8deg) scale(1);opacity:1;}}
+.drop{border:1.5px dashed var(--paper-line);border-radius:4px;padding:22px;text-align:center;cursor:pointer;background:#fbfaf6;}
+.drop:hover{border-color:var(--forest);}
+.drop-label{font-size:13px;color:var(--ink-soft);}
+.drop-label b{color:var(--forest-dark);}
+.cal-preview{max-width:100%;max-height:220px;border-radius:3px;border:1px solid var(--paper-line);display:block;margin:0 auto 14px;}
+.slot{display:flex;gap:12px;align-items:baseline;padding:10px 2px;border-bottom:1px solid var(--paper-line);}
+.slot:last-child{border-bottom:none;}
+.slot-time{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--forest-dark);white-space:nowrap;min-width:150px;}
+.slot-reason{font-size:13px;color:var(--ink-soft);}
+.slot-day{font-weight:600;color:var(--ink);}
+.source-card{border:1px solid var(--paper-line);background:#fbfaf6;border-radius:4px;padding:13px 14px;margin-bottom:10px;}
+.source-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px;}
+.source-title{font-family:'Fraunces',serif;font-size:15.5px;color:var(--ink);}
+.source-format{font-family:'IBM Plex Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--brass);border:1px solid var(--brass-light);padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.source-creator{font-size:11.5px;color:var(--ink-soft);margin-bottom:5px;}
+.source-why{font-size:13px;color:var(--ink);}
+.loading{font-size:13px;color:var(--ink-soft);padding:14px 2px;font-family:'IBM Plex Mono',monospace;}
+.error-box{font-size:13px;color:var(--red-ink);padding:10px 2px;}
+.hint{font-size:11.5px;color:var(--ink-soft);margin-top:10px;}
+@media (max-width:520px){
+  .venn{display:none;}
+  .wordmark{font-size:27px;}
+  .tab-btn{padding:9px 12px;font-size:10px;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect } = React;
+
+// ── Supabase config ────────────────────────────────────────────────
+const SUPABASE_URL = "https://zzawnvosskllubxxfmhg.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_optSiGxD6xdgA3Lh4Ee1Qw_SNUMTbR2";
+
+function VennMark() {
+  return (
+    <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
+      <circle cx="34" cy="34" r="22" fill="none" stroke="#2F5233" strokeWidth="1.1" opacity="0.55" />
+      <circle cx="52" cy="34" r="22" fill="none" stroke="#A67C3D" strokeWidth="1.1" opacity="0.55" />
+      <circle cx="34" cy="52" r="22" fill="none" stroke="#8B3A3A" strokeWidth="1.1" opacity="0.55" />
+      <circle cx="52" cy="52" r="22" fill="none" stroke="#5B6B5E" strokeWidth="1.1" opacity="0.55" />
+      <text x="16" y="16" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">love</text>
+      <text x="58" y="16" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">good at</text>
+      <text x="10" y="80" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">world needs</text>
+      <text x="52" y="80" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">paid for</text>
+    </svg>
+  );
+}
+
+// Calls the Supabase edge function, which forwards to Anthropic with the
+// server-held API key. Returns the model's text.
+async function callClaude(client, content, system) {
+  const { data, error } = await client.functions.invoke("claude-proxy", {
+    body: { system, content },
+  });
+  if (error) {
+    let msg = error.message || "Request failed";
+    try {
+      const ctx = error.context && (await error.context.json());
+      if (ctx && ctx.error) msg = ctx.error;
+    } catch (_) { /* ignore */ }
+    throw new Error(msg);
+  }
+  if (data && data.error) throw new Error(data.error);
+  return (data && data.text) || "";
+}
+
+function parseJsonLoose(text) {
+  const clean = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  return JSON.parse(clean);
+}
+
+function Ledger() {
+  const [weekTopic, setWeekTopic] = useState("How VCs value startups");
+  const [challenges, setChallenges] = useState([
+    { id: 1, text: "Read one term sheet and identify 3 clauses", done: false },
+    { id: 2, text: "Explain 'pre-money vs post-money' out loud to someone", done: false },
+  ]);
+  const [challengeDraft, setChallengeDraft] = useState("");
+  const [tab, setTab] = useState("track");
+
+  const [calImage, setCalImage] = useState(null);
+  const [slots, setSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState(null);
+  const fileRef = useRef(null);
+
+  const [sourceTopic, setSourceTopic] = useState("");
+  const [sources, setSources] = useState([]);
+  const [sourcesLoading, setSourcesLoading] = useState(false);
+  const [sourcesError, setSourcesError] = useState(null);
+
+  // Supabase sync
+  const clientRef = useRef(null);
+  const userIdRef = useRef(null);
+  const loadedRef = useRef(false);
+  const saveTimer = useRef(null);
+  const [syncState, setSyncState] = useState("loading"); // loading | ready | error
+  const [syncError, setSyncError] = useState(null);
+
+  // Connect anonymously and load this device's saved ledger.
+  useEffect(() => {
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    clientRef.current = client;
+    (async () => {
+      try {
+        let { data: { session } } = await client.auth.getSession();
+        if (!session) {
+          const { data, error } = await client.auth.signInAnonymously();
+          if (error) throw error;
+          session = data.session;
+        }
+        userIdRef.current = session.user.id;
+        const { data: row, error: selErr } = await client
+          .from("ledgers")
+          .select("week_topic, challenges")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        if (selErr) throw selErr;
+        if (row) {
+          setWeekTopic(row.week_topic || "");
+          setChallenges(Array.isArray(row.challenges) ? row.challenges : []);
+        }
+        loadedRef.current = true;
+        setSyncState("ready");
+      } catch (err) {
+        setSyncError(err.message || String(err));
+        setSyncState("error");
+      }
+    })();
+  }, []);
+
+  // Debounced save whenever the ledger changes (after initial load).
+  useEffect(() => {
+    if (!loadedRef.current || syncState !== "ready") return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const { error } = await clientRef.current
+          .from("ledgers")
+          .upsert(
+            { user_id: userIdRef.current, week_topic: weekTopic, challenges },
+            { onConflict: "user_id" }
+          );
+        if (error) throw error;
+        setSyncError(null);
+      } catch (err) {
+        setSyncError("Couldn't save: " + (err.message || String(err)));
+      }
+    }, 600);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [weekTopic, challenges, syncState]);
+
+  const allDone = challenges.length > 0 && challenges.every((c) => c.done);
+
+  function addChallenge() {
+    const t = challengeDraft.trim();
+    if (!t) return;
+    setChallenges((prev) => [...prev, { id: Date.now(), text: t, done: false }]);
+    setChallengeDraft("");
+  }
+  function toggleChallenge(id) {
+    setChallenges((prev) => prev.map((c) => (c.id === id ? { ...c, done: !c.done } : c)));
+  }
+  function removeChallenge(id) {
+    setChallenges((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  function handleFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      const match = result.match(/^data:(.*);base64,(.*)$/s);
+      if (!match) { setSlotsError("Couldn't read that image file. Try a different screenshot."); return; }
+      setCalImage({ mediaType: match[1], data: match[2], previewUrl: result });
+      setSlots([]);
+      setSlotsError(null);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function findStudyTime() {
+    if (!calImage) return;
+    if (syncState !== "ready") { setSlotsError("Still connecting — try again in a moment."); return; }
+    setSlotsLoading(true);
+    setSlotsError(null);
+    try {
+      const system = `You look at a screenshot of someone's weekly calendar and find realistic open gaps for focused study. The person wants to learn about: "${weekTopic || "business"}" this week. Return ONLY valid JSON with no markdown fences and no commentary: an array of up to 4 objects shaped like {"day":"Tuesday","time":"7:00–8:00 PM","reason":"short reason this slot works"}. Base it on actual gaps you can see in the image. If the image doesn't look like a calendar, return [].`;
+      const content = [
+        { type: "image", source: { type: "base64", media_type: calImage.mediaType, data: calImage.data } },
+        { type: "text", text: "Find good open time slots for business study this week based on this calendar screenshot." },
+      ];
+      const text = await callClaude(clientRef.current, content, system);
+      const parsed = parseJsonLoose(text);
+      setSlots(Array.isArray(parsed) ? parsed : []);
+    } catch (err) {
+      setSlotsError("Couldn't read that calendar (" + err.message + "). Please try again.");
+    } finally {
+      setSlotsLoading(false);
+    }
+  }
+
+  async function findSources() {
+    const topic = (sourceTopic || weekTopic).trim();
+    if (!topic) return;
+    if (syncState !== "ready") { setSourcesError("Still connecting — try again in a moment."); return; }
+    setSourcesLoading(true);
+    setSourcesError(null);
+    try {
+      const system = `You recommend excellent, real, well-known learning sources on business topics for a self-directed student. Return ONLY valid JSON with no markdown fences and no commentary: an array of exactly 4 objects shaped like {"title":"...","format":"Podcast episode|Article|Book|Video|Course","creator":"...","why":"one short sentence on why this fits the topic"}. Sources must be real, specific, and well-regarded — never invented.`;
+      const text = await callClaude(clientRef.current, `Recommend business learning sources for this week's topic: "${topic}"`, system);
+      const parsed = parseJsonLoose(text);
+      setSources(Array.isArray(parsed) ? parsed : []);
+    } catch (err) {
+      setSourcesError("Couldn't fetch recommendations (" + err.message + "). Please try again.");
+    } finally {
+      setSourcesLoading(false);
+    }
+  }
+
+  const syncLabel =
+    syncState === "loading" ? <span>Connecting…</span>
+    : syncState === "error" ? <span>Offline — changes won't be saved</span>
+    : syncError ? <span>{syncError}</span>
+    : <span><b>Saved</b> to your workspace</span>;
+
+  return (
+    <div className="ledger-app">
+      <div className="wrap">
+        <div className="header">
+          <div>
+            <div className="wordmark">Ledger</div>
+            <div className="tagline">a weekly practice for learning business</div>
+            <div className={"sync" + (syncState === "error" || syncError ? " err" : "")}>{syncLabel}</div>
+          </div>
+          <div className="venn"><VennMark /></div>
+        </div>
+
+        <div className="week-bar">
+          <label>This week's focus</label>
+          <input
+            className="week-input"
+            value={weekTopic}
+            onChange={(e) => setWeekTopic(e.target.value)}
+            placeholder="e.g. unit economics, negotiation, pricing strategy"
+          />
+        </div>
+
+        <div className="tabs">
+          <button className={"tab-btn" + (tab === "track" ? " active" : "")} onClick={() => setTab("track")}>Track</button>
+          <button className={"tab-btn" + (tab === "schedule" ? " active" : "")} onClick={() => setTab("schedule")}>Schedule</button>
+          <button className={"tab-btn" + (tab === "sources" ? " active" : "")} onClick={() => setTab("sources")}>Sources</button>
+        </div>
+
+        <div className="page">
+          <div className="page-inner">
+            {tab === "track" && (
+              <div>
+                <h2 className="section-title">This week's challenges</h2>
+                <p className="section-sub">Set yourself something concrete to do about "{weekTopic || "your topic"}" — not "learn about it," but do something.</p>
+                <div className="add-row">
+                  <input
+                    className="text-input"
+                    value={challengeDraft}
+                    onChange={(e) => setChallengeDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addChallenge()}
+                    placeholder="Add a challenge for this week"
+                  />
+                  <button className="btn" onClick={addChallenge}>Add</button>
+                </div>
+                {challenges.length === 0 ? (
+                  <p className="empty">No challenges yet. Add one above to start the week's page.</p>
+                ) : (
+                  <ul className="challenge-list">
+                    {challenges.map((c) => (
+                      <li className="challenge" key={c.id}>
+                        <span
+                          className={"check" + (c.done ? " done" : "")}
+                          onClick={() => toggleChallenge(c.id)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleChallenge(c.id); } }}
+                          role="checkbox"
+                          aria-checked={c.done}
+                          tabIndex={0}
+                        />
+                        <span className={"challenge-text" + (c.done ? " done" : "")}>{c.text}</span>
+                        <button className="remove" onClick={() => removeChallenge(c.id)} aria-label="Remove challenge">×</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {allDone && (
+                  <div className="stamp-wrap">
+                    <div className="stamp">
+                      <div className="stamp-top">Week</div>
+                      <div className="stamp-mid">IKIGAI</div>
+                      <div className="stamp-bot">Complete</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "schedule" && (
+              <div>
+                <h2 className="section-title">Find time for it</h2>
+                <p className="section-sub">Upload a screenshot of your calendar and Ledger will suggest real open slots for "{weekTopic || "business"}" study this week.</p>
+                <div className="drop" onClick={() => fileRef.current && fileRef.current.click()}>
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
+                  <div className="drop-label">{calImage ? <b>Screenshot loaded — click to replace</b> : <span><b>Click to upload</b> a screenshot of your calendar</span>}</div>
+                </div>
+                {calImage && <img className="cal-preview" src={calImage.previewUrl} alt="Calendar screenshot preview" style={{ marginTop: 14 }} />}
+                {calImage && (
+                  <button className="btn" style={{ marginTop: 4 }} onClick={findStudyTime} disabled={slotsLoading}>
+                    {slotsLoading ? "Reading calendar…" : "Suggest study times"}
+                  </button>
+                )}
+                {slotsLoading && <p className="loading">Reading the ledger…</p>}
+                {slotsError && <p className="error-box">{slotsError}</p>}
+                {!slotsLoading && slots.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    {slots.map((s, i) => (
+                      <div className="slot" key={i}>
+                        <span className="slot-time"><span className="slot-day">{s.day}</span>{s.day ? ", " : ""}{s.time}</span>
+                        <span className="slot-reason">{s.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="hint">Your screenshot is sent only to generate this suggestion — it isn't stored anywhere.</p>
+              </div>
+            )}
+
+            {tab === "sources" && (
+              <div>
+                <h2 className="section-title">Sources for this week</h2>
+                <p className="section-sub">Get sources matched to exactly what you want to learn — not a generic reading list.</p>
+                <div className="add-row">
+                  <input
+                    className="text-input"
+                    value={sourceTopic}
+                    onChange={(e) => setSourceTopic(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && findSources()}
+                    placeholder={weekTopic ? `Defaults to "${weekTopic}"` : "e.g. pricing strategy"}
+                  />
+                  <button className="btn" onClick={findSources} disabled={sourcesLoading}>
+                    {sourcesLoading ? "Searching…" : "Find sources"}
+                  </button>
+                </div>
+                {sourcesLoading && <p className="loading">Checking the books…</p>}
+                {sourcesError && <p className="error-box">{sourcesError}</p>}
+                {!sourcesLoading &&
+                  sources.map((s, i) => (
+                    <div className="source-card" key={i}>
+                      <div className="source-top">
+                        <span className="source-title">{s.title}</span>
+                        <span className="source-format">{s.format}</span>
+                      </div>
+                      <div className="source-creator">{s.creator}</div>
+                      <div className="source-why">{s.why}</div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Ledger />);
+</script>
+</body>
+</html>
