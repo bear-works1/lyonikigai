@@ -3,145 +3,537 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ledger — a weekly practice for learning business</title>
+<title>The Business Ledger — a weekly learning tracker</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  html,body{margin:0;padding:0;}
-  #root{min-height:100vh;}
-
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-.ledger-app{
-  --paper:#F1EFE6;
-  --paper-line:#D8D2BE;
-  --paper-dark:#E6E2D2;
-  --ink:#1F2A24;
-  --ink-soft:#5B6B5E;
-  --forest:#2F5233;
-  --forest-dark:#1E3A21;
-  --brass:#A67C3D;
-  --brass-light:#C9A567;
-  --red-ink:#8B3A3A;
-  font-family:'IBM Plex Sans',sans-serif;
-  color:var(--ink);
-  background:var(--paper);
-  min-height:100vh;
-  padding:0;
-}
-.ledger-app *{box-sizing:border-box;}
-.wrap{max-width:760px;margin:0 auto;padding:28px 20px 60px;}
-.header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;}
-.wordmark{font-family:'Fraunces',serif;font-weight:600;font-size:34px;letter-spacing:-0.02em;color:var(--forest-dark);line-height:1;}
-.tagline{font-size:12.5px;color:var(--ink-soft);margin-top:6px;letter-spacing:0.02em;}
-.sync{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink-soft);margin-top:6px;}
-.sync b{color:var(--forest-dark);font-weight:500;}
-.sync.err{color:var(--red-ink);}
-.week-bar{background:var(--paper-dark);border:1px solid var(--paper-line);border-radius:3px;padding:14px 16px;margin-bottom:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.week-bar label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);}
-.week-input{flex:1;min-width:160px;border:none;background:transparent;border-bottom:1.5px dashed var(--paper-line);font-family:'Fraunces',serif;font-size:17px;color:var(--ink);padding:4px 2px;outline:none;}
-.week-input:focus{border-bottom-color:var(--forest);}
-.tabs{display:flex;gap:2px;margin-bottom:0;}
-.tab-btn{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;padding:10px 18px;border:1px solid var(--paper-line);border-bottom:none;background:var(--paper-dark);color:var(--ink-soft);cursor:pointer;border-radius:4px 4px 0 0;position:relative;top:1px;}
-.tab-btn.active{background:var(--paper);color:var(--forest-dark);font-weight:600;border-color:var(--paper-line);}
-.page{background:var(--paper);border:1px solid var(--paper-line);border-radius:0 4px 4px 4px;padding:24px 22px;position:relative;
-  background-image:repeating-linear-gradient(var(--paper) 0px, var(--paper) 30px, var(--paper-line) 31px);
-}
-.page-inner{position:relative;z-index:1;}
-.section-title{font-family:'Fraunces',serif;font-size:19px;color:var(--forest-dark);margin:0 0 4px;}
-.section-sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;}
-.add-row{display:flex;gap:8px;margin-bottom:14px;}
-.text-input{flex:1;border:1px solid var(--paper-line);background:#fff;padding:9px 11px;border-radius:3px;font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;color:var(--ink);outline:none;}
-.text-input:focus{border-color:var(--forest);}
-.btn{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;background:var(--forest);color:var(--paper);border:none;padding:0 16px;height:38px;border-radius:3px;cursor:pointer;white-space:nowrap;}
-.btn:hover{background:var(--forest-dark);}
-.btn:disabled{background:#B7BEB4;cursor:not-allowed;}
-.challenge-list{list-style:none;padding:0;margin:0;}
-.challenge{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--paper-line);}
-.challenge:last-child{border-bottom:none;}
-.check{width:17px;height:17px;border:1.5px solid var(--forest);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;}
-.check.done{background:var(--forest);}
-.check.done::after{content:'✓';color:var(--paper);font-size:12px;line-height:1;}
-.challenge-text{flex:1;font-size:14px;}
-.challenge-text.done{text-decoration:line-through;color:var(--ink-soft);}
-.remove{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 6px;}
-.remove:hover{color:var(--red-ink);}
-.empty{color:var(--ink-soft);font-size:13.5px;font-style:italic;padding:6px 2px;}
-.stamp-wrap{display:flex;justify-content:center;padding:18px 0 4px;}
-.stamp{
-  width:118px;height:118px;border-radius:50%;
-  border:3px solid var(--brass);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transform:rotate(-8deg);
-  color:var(--brass);
-  font-family:'IBM Plex Mono',monospace;
-  letter-spacing:0.06em;
-  animation:stampIn 0.4s cubic-bezier(.2,1.4,.4,1);
-  position:relative;
-}
-.stamp::before{content:'';position:absolute;inset:8px;border:1px solid var(--brass-light);border-radius:50%;}
-.stamp-top{font-size:10px;text-transform:uppercase;}
-.stamp-mid{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin:2px 0;}
-.stamp-bot{font-size:8.5px;text-transform:uppercase;}
-@keyframes stampIn{0%{transform:rotate(-8deg) scale(2.4);opacity:0;}70%{opacity:1;}100%{transform:rotate(-8deg) scale(1);opacity:1;}}
-.drop{border:1.5px dashed var(--paper-line);border-radius:4px;padding:22px;text-align:center;cursor:pointer;background:#fbfaf6;}
-.drop:hover{border-color:var(--forest);}
-.drop-label{font-size:13px;color:var(--ink-soft);}
-.drop-label b{color:var(--forest-dark);}
-.cal-preview{max-width:100%;max-height:220px;border-radius:3px;border:1px solid var(--paper-line);display:block;margin:0 auto 14px;}
-.slot{display:flex;gap:12px;align-items:baseline;padding:10px 2px;border-bottom:1px solid var(--paper-line);}
-.slot:last-child{border-bottom:none;}
-.slot-time{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--forest-dark);white-space:nowrap;min-width:150px;}
-.slot-reason{font-size:13px;color:var(--ink-soft);}
-.slot-day{font-weight:600;color:var(--ink);}
-.source-card{border:1px solid var(--paper-line);background:#fbfaf6;border-radius:4px;padding:13px 14px;margin-bottom:10px;}
-.source-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px;}
-.source-title{font-family:'Fraunces',serif;font-size:15.5px;color:var(--ink);}
-.source-format{font-family:'IBM Plex Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--brass);border:1px solid var(--brass-light);padding:2px 7px;border-radius:10px;white-space:nowrap;}
-.source-creator{font-size:11.5px;color:var(--ink-soft);margin-bottom:5px;}
-.source-why{font-size:13px;color:var(--ink);}
-.loading{font-size:13px;color:var(--ink-soft);padding:14px 2px;font-family:'IBM Plex Mono',monospace;}
-.error-box{font-size:13px;color:var(--red-ink);padding:10px 2px;}
-.hint{font-size:11.5px;color:var(--ink-soft);margin-top:10px;}
-@media (max-width:520px){
-  .venn{display:none;}
-  .wordmark{font-size:27px;}
-  .tab-btn{padding:9px 12px;font-size:10px;}
-}
+  html, body { margin: 0; padding: 0; }
+  #root { min-height: 100vh; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
-const { useState, useRef, useEffect } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 
-// ── Supabase config ────────────────────────────────────────────────
+/* ============================================================
+   Standalone runtime shims (Supabase-backed)
+   ============================================================ */
 const SUPABASE_URL = "https://zzawnvosskllubxxfmhg.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_optSiGxD6xdgA3Lh4Ee1Qw_SNUMTbR2";
 
-function VennMark() {
-  return (
-    <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
-      <circle cx="34" cy="34" r="22" fill="none" stroke="#2F5233" strokeWidth="1.1" opacity="0.55" />
-      <circle cx="52" cy="34" r="22" fill="none" stroke="#A67C3D" strokeWidth="1.1" opacity="0.55" />
-      <circle cx="34" cy="52" r="22" fill="none" stroke="#8B3A3A" strokeWidth="1.1" opacity="0.55" />
-      <circle cx="52" cy="52" r="22" fill="none" stroke="#5B6B5E" strokeWidth="1.1" opacity="0.55" />
-      <text x="16" y="16" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">love</text>
-      <text x="58" y="16" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">good at</text>
-      <text x="10" y="80" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">world needs</text>
-      <text x="52" y="80" fontSize="6.5" fontFamily="IBM Plex Mono" fill="#5B6B5E">paid for</text>
-    </svg>
-  );
-}
+let supa = null;
+let authReady = Promise.resolve();
 
-// Calls the Supabase edge function, which forwards to Anthropic with the
-// server-held API key. Returns the model's text.
-async function callClaude(client, content, system) {
-  const { data, error } = await client.functions.invoke("claude-proxy", {
-    body: { system, content },
-  });
+function initSupa() {
+  try {
+    if (window.supabase && window.supabase.createClient) {
+      supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      authReady = (async () => {
+        try {
+          const { data: { session } } = await supa.auth.getSession();
+          if (!session) await supa.auth.signInAnonymously();
+        } catch (e) { /* anonymous sign-ins may be disabled in the dashboard */ }
+      })();
+    }
+  } catch (e) { supa = null; }
+}
+initSupa();
+
+/* Persistence: Supabase per-user KV when signed in, always mirrored to
+   localStorage so the app still remembers progress if the backend is down. */
+const storage = {
+  async get(key) {
+    try {
+      if (supa) {
+        await authReady;
+        const { data: { user } } = await supa.auth.getUser();
+        if (user) {
+          const { data, error } = await supa
+            .from("app_state").select("data")
+            .eq("user_id", user.id).eq("key", key).maybeSingle();
+          if (!error && data) return { value: JSON.stringify(data.data) };
+        }
+      }
+    } catch (_) { /* fall through to local */ }
+    try { const v = localStorage.getItem(key); if (v != null) return { value: v }; } catch (_) {}
+    return null;
+  },
+  async set(key, value) {
+    try { localStorage.setItem(key, value); } catch (_) {}
+    try {
+      if (supa) {
+        await authReady;
+        const { data: { user } } = await supa.auth.getUser();
+        if (user) {
+          await supa.from("app_state").upsert(
+            { user_id: user.id, key, data: JSON.parse(value) },
+            { onConflict: "user_id,key" }
+          );
+        }
+      }
+    } catch (_) { /* local copy already saved */ }
+  },
+};
+window.storage = storage;
+
+
+/* ============================================================
+   The Business Ledger — a weekly learning tracker
+   Palette: navy ink, working blue, sky wash, paper white
+   ============================================================ */
+
+const C = {
+  ink: "#0A1A33",
+  blue: "#1B4FD8",
+  deep: "#0C2E8A",
+  sky: "#EAF1FF",
+  rule: "#D3E0F7",
+  slate: "#5A6B85",
+  white: "#FFFFFF",
+};
+
+const TOPICS = [
+  {
+    cat: "Strategy",
+    items: [
+      "Business models",
+      "Competitive advantage",
+      "Porter's five forces",
+      "SWOT analysis",
+      "Blue ocean strategy",
+      "OKRs and KPIs",
+      "Mergers and acquisitions",
+    ],
+  },
+  {
+    cat: "Finance & accounting",
+    items: [
+      "Income statement",
+      "Balance sheet",
+      "Cash flow statement",
+      "Unit economics",
+      "Break-even analysis",
+      "Time value of money",
+      "Discounted cash flow",
+      "Budgeting and forecasting",
+      "Valuation multiples",
+      "Raising capital and cap tables",
+    ],
+  },
+  {
+    cat: "Marketing & sales",
+    items: [
+      "Segmentation and positioning",
+      "The four Ps",
+      "Brand building",
+      "Pricing strategy",
+      "CAC and LTV",
+      "Marketing funnels",
+      "SEO and content",
+      "Sales pipeline management",
+      "Negotiation",
+    ],
+  },
+  {
+    cat: "Operations",
+    items: [
+      "Process mapping",
+      "Lean and Six Sigma",
+      "Inventory management",
+      "Supply chain basics",
+      "Quality management",
+      "Capacity planning",
+    ],
+  },
+  {
+    cat: "Economics",
+    items: [
+      "Supply and demand",
+      "Price elasticity",
+      "Market structures",
+      "Macro indicators",
+      "Game theory basics",
+      "Behavioral economics",
+    ],
+  },
+  {
+    cat: "Entrepreneurship & product",
+    items: [
+      "Idea validation",
+      "Lean startup and MVPs",
+      "Product-market fit",
+      "Go-to-market plans",
+      "Growth loops",
+      "Pitching investors",
+    ],
+  },
+  {
+    cat: "People & leadership",
+    items: [
+      "Hiring and interviewing",
+      "Giving feedback",
+      "Team dynamics",
+      "Leadership styles",
+      "Company culture",
+      "Delegation",
+    ],
+  },
+  {
+    cat: "Law & ethics",
+    items: [
+      "Business entity types",
+      "Contract basics",
+      "Intellectual property",
+      "Compliance and risk",
+      "Business ethics",
+    ],
+  },
+  {
+    cat: "Data & tech",
+    items: [
+      "Business analytics",
+      "Dashboards and metrics",
+      "A/B testing",
+      "Financial modeling in spreadsheets",
+      "AI in business",
+    ],
+  },
+];
+
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/* 17 ranks, 100 XP per promotion */
+const RANKS = [
+  "Intern",
+  "Assistant",
+  "Associate",
+  "Analyst",
+  "Senior Analyst",
+  "Coordinator",
+  "Specialist",
+  "Manager",
+  "Senior Manager",
+  "Director",
+  "Senior Director",
+  "Vice President",
+  "Senior Vice President",
+  "Executive Vice President",
+  "Chief of Staff",
+  "President",
+  "CEO",
+];
+const XP_PER_RANK = 100;
+const rankIndex = (xp) => Math.min(RANKS.length - 1, Math.floor(xp / XP_PER_RANK));
+const rankOf = (xp) => RANKS[rankIndex(xp)];
+const xpIntoRank = (xp) =>
+  rankIndex(xp) === RANKS.length - 1 ? XP_PER_RANK : xp % XP_PER_RANK;
+
+/* Score → XP. Below 80% earns nothing and the topic stays open. */
+const xpForScore = (pct) => (pct >= 100 ? 100 : pct >= 90 ? 60 : pct >= 80 ? 40 : 0);
+
+const shuffle = (a) => {
+  const x = [...a];
+  for (let i = x.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [x[i], x[j]] = [x[j], x[i]];
+  }
+  return x;
+};
+const money = (n) => `$${Math.round(n).toLocaleString()}`;
+
+/* ---------- game content ---------- */
+const TERM_BANK = [
+  ["Gross margin", "What's left of a sale after the cost of making the thing"],
+  ["Customer acquisition cost", "What you spend, on average, to win one new customer"],
+  ["Lifetime value", "Total profit you expect from one customer, start to finish"],
+  ["Burn rate", "How much cash the business loses in a month"],
+  ["Runway", "Months of cash left at the current burn"],
+  ["Break-even point", "The sales level where profit is exactly zero"],
+  ["Fixed cost", "A cost that stays the same however much you sell"],
+  ["Variable cost", "A cost that rises with every extra unit sold"],
+  ["Contribution margin", "What one sale contributes after its variable costs"],
+  ["Working capital", "Current assets minus current liabilities"],
+  ["Accounts receivable", "Money customers owe you but haven't paid yet"],
+  ["Accounts payable", "Money you owe suppliers but haven't paid yet"],
+  ["Depreciation", "Spreading an asset's cost across the years it's used"],
+  ["Equity", "What owners are left holding once debts are subtracted"],
+  ["Liquidity", "How fast an asset turns into cash without losing value"],
+  ["Economies of scale", "Cost per unit falls as you make more of them"],
+  ["Opportunity cost", "The value of the best option you passed up"],
+  ["Sunk cost", "Money already spent that no future choice can recover"],
+  ["Price elasticity", "How much demand moves when the price moves"],
+  ["Market segmentation", "Splitting buyers into groups with shared needs"],
+  ["Positioning", "The place your brand takes up in a buyer's head"],
+  ["Value proposition", "The plain reason a customer should pick you"],
+  ["Product-market fit", "Hard evidence the market actually wants what you built"],
+  ["Minimum viable product", "The smallest build that tests the idea on real users"],
+  ["Churn rate", "The share of customers who walk away in a period"],
+  ["Moat", "A durable advantage rivals can't easily copy"],
+  ["EBITDA", "Earnings before interest, tax, depreciation and amortization"],
+  ["Dilution", "Your ownership shrinking as new shares are issued"],
+  ["Payback period", "How long it takes to earn back what you spent"],
+  ["Inventory turnover", "How many times you sell through your stock in a period"],
+  ["Due diligence", "Digging into a deal's facts before you sign"],
+  ["Bootstrapping", "Growing on your own revenue, with no outside money"],
+  ["Loss leader", "A product priced at a loss to pull buyers in"],
+  ["Vertical integration", "Owning more of your own supply chain"],
+  ["Goodwill", "The premium paid above an acquired company's book value"],
+];
+
+const LEDGER_ITEMS = [
+  ["Cash in the bank", "Asset"],
+  ["The delivery van", "Asset"],
+  ["Invoices customers haven't paid", "Asset"],
+  ["Inventory on the shelf", "Asset"],
+  ["Rent you paid six months ahead", "Asset"],
+  ["A trademark you own", "Asset"],
+  ["The espresso machine", "Asset"],
+  ["The bank loan", "Liability"],
+  ["An unpaid supplier invoice", "Liability"],
+  ["Wages owed to staff on Friday", "Liability"],
+  ["Sales tax due next month", "Liability"],
+  ["A deposit for work not done yet", "Liability"],
+  ["The company credit card balance", "Liability"],
+  ["The mortgage on the shop", "Liability"],
+  ["Interest owed but not yet paid", "Liability"],
+  ["Retained earnings", "Equity"],
+  ["The founder's cash investment", "Equity"],
+  ["Common stock issued", "Equity"],
+  ["Additional paid-in capital", "Equity"],
+  ["Profit kept in the business", "Equity"],
+];
+
+const JARGON = [
+  ["Moat", true, "A durable edge competitors can't copy."],
+  ["Burn rate", true, "Monthly cash the company loses."],
+  ["Loss leader", true, "Priced at a loss to pull buyers in."],
+  ["Vertical integration", true, "Owning more of your own supply chain."],
+  ["Arbitrage", true, "Profiting from the same thing priced differently in two places."],
+  ["Escrow", true, "A third party holds the money until the deal closes."],
+  ["Goodwill", true, "The premium paid over an acquired firm's book value."],
+  ["Cannibalization", true, "Your new product eating your old product's sales."],
+  ["Freemium", true, "Free tier, paid upgrade."],
+  ["Golden parachute", true, "A big exit payout written into an executive's contract."],
+  ["Poison pill", true, "A defense that makes a hostile takeover expensive."],
+  ["Bullwhip effect", true, "Small demand wobbles turn into wild swings up the supply chain."],
+  ["Cash cow", true, "A mature product that throws off cash with little investment."],
+  ["Vesting cliff", true, "No equity at all until you've stayed a set time."],
+  ["Shrinkage", true, "Inventory lost to theft, damage or error."],
+  ["Profit lattice", false, ""],
+  ["Demand feathering", false, ""],
+  ["Equity varnish", false, ""],
+  ["Silver parachute", false, ""],
+  ["Blue lagoon strategy", false, ""],
+  ["Ledger bloom", false, ""],
+  ["Margin quilting", false, ""],
+  ["Capital sprouting", false, ""],
+  ["Copper handshake", false, ""],
+  ["Synergy fold", false, ""],
+  ["Revenue mulching", false, ""],
+  ["Brand simmering", false, ""],
+  ["Velocity taxing", false, ""],
+];
+
+const SCENARIOS = [
+  {
+    setup: "Week 1. Your coffee cart clears $2 profit a cup and sells 400 cups a week. A landlord offers a busier corner for $900 more a month.",
+    options: [
+      { label: "Take the corner", cash: -900, cust: 90, lesson: "Higher fixed costs are a bet on volume. At $2 a cup you need 450 extra cups a month just to break even on the rent — you got there." },
+      { label: "Stay put, spend $300 on a sign", cash: -300, cust: 25, lesson: "Cheap experiments before expensive commitments. Small spend, small lift, no new fixed cost hanging over you." },
+      { label: "Change nothing", cash: 0, cust: 0, lesson: "Doing nothing is a decision too — and it has an opportunity cost: the growth you didn't buy." },
+    ],
+  },
+  {
+    setup: "A regular asks for 200 cups a month for her office at 40% off. It's a third of your capacity.",
+    options: [
+      { label: "Take the discount deal", cash: 480, cust: 40, lesson: "Check the contribution margin, not the discount. If 40% off still clears your variable cost, the sale adds profit — but it eats capacity you might sell at full price." },
+      { label: "Counter at 15% off", cash: 700, cust: 30, lesson: "Anchoring works both ways. Volume buyers expect to negotiate, and the first number rarely has to be the last." },
+      { label: "Decline, hold your price", cash: 0, cust: 10, lesson: "Discounting teaches customers to wait for discounts. Holding price protects the brand — and costs you a signed deal." },
+    ],
+  },
+  {
+    setup: "You've spent $4,000 developing a bottled cold brew. Test sales are dismal. Finishing it costs another $2,000.",
+    options: [
+      { label: "Finish it — $4,000 is already in", cash: -2000, cust: 5, lesson: "That's the sunk cost fallacy. The $4,000 is gone whatever you do; the only live question is whether the next $2,000 earns a return." },
+      { label: "Kill it and move on", cash: 0, cust: 0, lesson: "Right call. Sunk costs are irrelevant to the next decision — you judged the $2,000 on its own merits." },
+      { label: "Sell the recipe to a rival for $1,200", cash: 1200, cust: -10, lesson: "Salvage value is real value. You recovered cash and freed capacity — though you handed a competitor a product." },
+    ],
+  },
+  {
+    setup: "Your CAC is $18. An average customer brings $60 of lifetime profit. Your ad guy wants triple the budget.",
+    options: [
+      { label: "Triple it", cash: -1800, cust: 100, lesson: "LTV:CAC of 3.3:1 is healthy, so buying more customers is rational — but CAC usually rises as you scale, so watch that ratio, not just the volume." },
+      { label: "Double it and watch CAC weekly", cash: -1200, cust: 70, lesson: "Scale spend in steps and measure. The moment CAC climbs toward LTV, growth stops paying for itself." },
+      { label: "Freeze it, fix churn first", cash: 0, cust: 30, lesson: "A leaky bucket wastes every dollar you pour in. Cutting churn raises LTV, which makes every future ad dollar go further." },
+    ],
+  },
+  {
+    setup: "Cash is $6,200 and you burn $2,000 a month. An investor offers $40,000 for 30% of the company.",
+    options: [
+      { label: "Take the money", cash: 40000, cust: 60, lesson: "Runway was three months — that's negotiating from weakness. You bought 20 months of survival, but 30% is steep dilution this early." },
+      { label: "Raise less: $15,000 for 10%", cash: 15000, cust: 30, lesson: "Raise what the next milestone needs. Less dilution now, and a better valuation later if the milestone lands." },
+      { label: "Cut burn to $900 and grow slowly", cash: -200, cust: 15, lesson: "Bootstrapping keeps all the equity and buys seven months of runway — but slow growth invites competitors in." },
+    ],
+  },
+  {
+    setup: "A rival opens across the street and undercuts you by 20%.",
+    options: [
+      { label: "Match their price", cash: -1400, cust: 50, lesson: "Price wars punish whoever has the thinner margin. If your cost base isn't lower than theirs, this is a fight you lose slowly." },
+      { label: "Hold price, add free refills for regulars", cash: -400, cust: 60, lesson: "Compete on value, not price. Loyalty perks raise switching costs and defend margin at the same time." },
+      { label: "Go upmarket: single-origin, +15% price", cash: 900, cust: -20, lesson: "Differentiation beats a race to the bottom. You lose price-sensitive buyers and keep the ones who pay for quality." },
+    ],
+  },
+  {
+    setup: "Holiday rush. You can pre-buy beans at a 25% discount, but it takes most of your cash and the beans expire in 90 days.",
+    options: [
+      { label: "Buy the full pallet", cash: -3500, cust: 20, lesson: "That's cash tied up in inventory. The discount is real, but so is the risk: unsold stock past 90 days is a write-off, and you can't pay rent with beans." },
+      { label: "Buy half", cash: -1750, cust: 20, lesson: "You split the difference between the discount and your liquidity. Working capital keeps the doors open when sales disappoint." },
+      { label: "Skip it, buy weekly at full price", cash: -300, cust: 15, lesson: "Just-in-time buying costs more per bag and protects your cash. Which matters more depends on how sure you are of demand." },
+    ],
+  },
+  {
+    setup: "A food blogger with 90,000 followers wants a free month of coffee in exchange for posts.",
+    options: [
+      { label: "Say yes", cash: -240, cust: 80, lesson: "Cheap CAC when it works: $240 for 80 customers is $3 each. It's also unpredictable — you can't budget on a post going viral." },
+      { label: "Offer a discount code you can track", cash: -120, cust: 55, lesson: "If you can't measure it, you can't scale it. A tracked code turns a favor into a marketing channel with a real CAC." },
+      { label: "Decline and buy ads instead", cash: -500, cust: 45, lesson: "Paid ads are predictable and boring, which is their virtue. You trade upside for a number you can forecast." },
+    ],
+  },
+];
+
+/* Randomised metric problems — new numbers every run */
+const METRIC_TEMPLATES = [
+  () => {
+    const rev = 50 * (4 + Math.floor(Math.random() * 12));
+    const cogs = Math.round(rev * (0.3 + Math.random() * 0.4));
+    const a = Math.round(((rev - cogs) / rev) * 100);
+    return {
+      q: `Revenue is ${money(rev)} and cost of goods sold is ${money(cogs)}. What's the gross margin?`,
+      answer: `${a}%`,
+      wrong: [`${100 - a}%`, `${Math.round((cogs / rev) * 100)}%`, `${money(rev - cogs)}`],
+      why: "Gross margin = (revenue − COGS) ÷ revenue.",
+    };
+  },
+  () => {
+    const spend = 500 * (2 + Math.floor(Math.random() * 12));
+    const n = 10 * (2 + Math.floor(Math.random() * 12));
+    const a = spend / n;
+    return {
+      q: `You spent ${money(spend)} on marketing and it won ${n} new customers. What's the CAC?`,
+      answer: money(a),
+      wrong: [money(a * 2), money(n / spend > 0 ? spend / (n * 2) : 1), money(spend - n)],
+      why: "CAC = total acquisition spend ÷ new customers won.",
+    };
+  },
+  () => {
+    const cac = 20 * (1 + Math.floor(Math.random() * 8));
+    const mult = [2, 3, 4, 5][Math.floor(Math.random() * 4)];
+    const ltv = cac * mult;
+    return {
+      q: `CAC is ${money(cac)} and lifetime value is ${money(ltv)}. What's the LTV:CAC ratio?`,
+      answer: `${mult}:1`,
+      wrong: [`1:${mult}`, `${mult + 1}:1`, `${Math.max(1, mult - 1)}:1`],
+      why: "LTV ÷ CAC. Under 3:1 usually means growth isn't paying for itself.",
+    };
+  },
+  () => {
+    const price = 10 + Math.floor(Math.random() * 30);
+    const varc = Math.floor(price * (0.3 + Math.random() * 0.3));
+    const cm = price - varc;
+    const fixed = cm * 50 * (1 + Math.floor(Math.random() * 6));
+    return {
+      q: `Fixed costs are ${money(fixed)}. Each unit sells for ${money(price)} and costs ${money(varc)} to make. How many units to break even?`,
+      answer: `${Math.round(fixed / cm)} units`,
+      wrong: [
+        `${Math.round(fixed / price)} units`,
+        `${Math.round(fixed / varc)} units`,
+        `${Math.round(fixed / (price + varc))} units`,
+      ],
+      why: "Break-even units = fixed costs ÷ contribution margin per unit (price − variable cost).",
+    };
+  },
+  () => {
+    const cash = 5000 * (2 + Math.floor(Math.random() * 14));
+    const burn = 2500 * (1 + Math.floor(Math.random() * 5));
+    const a = Math.round((cash / burn) * 10) / 10;
+    return {
+      q: `You hold ${money(cash)} and burn ${money(burn)} a month. What's your runway?`,
+      answer: `${a} months`,
+      wrong: [`${Math.round(a * 2 * 10) / 10} months`, `${Math.round((a / 2) * 10) / 10} months`, `${Math.round(burn / 1000)} months`],
+      why: "Runway = cash ÷ monthly burn.",
+    };
+  },
+  () => {
+    const start = 100 * (2 + Math.floor(Math.random() * 18));
+    const lost = Math.round(start * [0.02, 0.05, 0.1, 0.2][Math.floor(Math.random() * 4)]);
+    const a = Math.round((lost / start) * 100);
+    return {
+      q: `You began the month with ${start} customers and ${lost} left. What's the churn rate?`,
+      answer: `${a}%`,
+      wrong: [`${100 - a}%`, `${lost}%`, `${Math.round((lost / (start - lost)) * 100)}%`],
+      why: "Churn = customers lost ÷ customers at the start of the period.",
+    };
+  },
+  () => {
+    const cost = 1000 * (1 + Math.floor(Math.random() * 20));
+    const mult = [1.2, 1.5, 1.8, 2][Math.floor(Math.random() * 4)];
+    const ret = Math.round(cost * mult);
+    const a = Math.round(((ret - cost) / cost) * 100);
+    return {
+      q: `You invested ${money(cost)} and it returned ${money(ret)} in total. What's the ROI?`,
+      answer: `${a}%`,
+      wrong: [`${a + 100}%`, `${Math.round((cost / ret) * 100)}%`, `${money(ret - cost)}`],
+      why: "ROI = (gain − cost) ÷ cost.",
+    };
+  },
+  () => {
+    const cac = 30 * (1 + Math.floor(Math.random() * 8));
+    const gp = [5, 10, 15, 20][Math.floor(Math.random() * 4)];
+    const a = Math.round((cac / gp) * 10) / 10;
+    return {
+      q: `CAC is ${money(cac)} and each customer brings ${money(gp)} of gross profit a month. What's the payback period?`,
+      answer: `${a} months`,
+      wrong: [`${Math.round(a * 2 * 10) / 10} months`, `${gp} months`, `${Math.round((gp / cac) * 100) / 100} months`],
+      why: "Payback = CAC ÷ monthly gross profit per customer.",
+    };
+  },
+];
+
+/* ---------- date helpers ---------- */
+const startOfWeek = (d) => {
+  const x = new Date(d);
+  const day = (x.getDay() + 6) % 7; // Monday = 0
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - day);
+  return x;
+};
+const iso = (d) => {
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(
+    x.getDate()
+  ).padStart(2, "0")}`;
+};
+const addDays = (d, n) => {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+};
+const fmtRange = (mon) => {
+  const sun = addDays(mon, 6);
+  const m = { month: "short", day: "numeric" };
+  return `${mon.toLocaleDateString("en-US", m)} – ${sun.toLocaleDateString("en-US", m)}`;
+};
+
+/* ---------- Claude calls (routed through Supabase edge function) ---------- */
+async function askClaude(messages, tools) {
+  if (!supa) throw new Error("Backend unavailable — the Supabase library didn't load.");
+  await authReady;
+  const body = { messages };
+  if (tools) body.tools = tools;
+  const { data, error } = await supa.functions.invoke("claude-proxy", { body });
   if (error) {
     let msg = error.message || "Request failed";
     try {
@@ -151,331 +543,2456 @@ async function callClaude(client, content, system) {
     throw new Error(msg);
   }
   if (data && data.error) throw new Error(data.error);
-  return (data && data.text) || "";
+  return data && data.text ? data.text : "";
 }
+const parseJSON = (text) => {
+  const clean = text.replace(/```json|```/g, "").trim();
+  const s = clean.indexOf("[") >= 0 ? clean.indexOf("[") : clean.indexOf("{");
+  const e = clean.lastIndexOf("]") >= 0 ? clean.lastIndexOf("]") : clean.lastIndexOf("}");
+  return JSON.parse(clean.slice(s, e + 1));
+};
 
-function parseJsonLoose(text) {
-  const clean = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-  return JSON.parse(clean);
-}
+/* ============================================================ */
+function BusinessLedger() {
+  const [loaded, setLoaded] = useState(false);
+  const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
+  const [focus, setFocus] = useState({});          // { weekKey: "topic" }
+  const [logs, setLogs] = useState([]);            // { id, date, topic, minutes, note }
+  const [challenges, setChallenges] = useState([]);// { id, week, text, done }
+  const [checked, setChecked] = useState({});      // { "Topic name": dateISO }
+  const [freeBlocks, setFreeBlocks] = useState([]);// { id, week, day, start, end, minutes }
+  const [xp, setXp] = useState(0);
+  const [scores, setScores] = useState({});        // { "Topic name": bestPct }
+  const [quizTopic, setQuizTopic] = useState(null);
+  const [courseTopic, setCourseTopic] = useState(null);
+  const [courses, setCourses] = useState({});      // { topic: {brief, lessons, work} }
+  const [work, setWork] = useState({});            // { topic: {0:true, 1:true} }
+  const [bonus, setBonus] = useState({});          // { topic: true } — coursework XP paid once
+  const [promotion, setPromotion] = useState(null);// rank name, shown after a promotion
+  const [bests, setBests] = useState({});          // arcade high scores
 
-function Ledger() {
-  const [weekTopic, setWeekTopic] = useState("How VCs value startups");
-  const [challenges, setChallenges] = useState([
-    { id: 1, text: "Read one term sheet and identify 3 clauses", done: false },
-    { id: 2, text: "Explain 'pre-money vs post-money' out loud to someone", done: false },
-  ]);
-  const [challengeDraft, setChallengeDraft] = useState("");
-  const [tab, setTab] = useState("track");
+  const weekKey = iso(weekStart);
 
-  const [calImage, setCalImage] = useState(null);
-  const [slots, setSlots] = useState([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [slotsError, setSlotsError] = useState(null);
-  const fileRef = useRef(null);
-
-  const [sourceTopic, setSourceTopic] = useState("");
-  const [sources, setSources] = useState([]);
-  const [sourcesLoading, setSourcesLoading] = useState(false);
-  const [sourcesError, setSourcesError] = useState(null);
-
-  // Supabase sync
-  const clientRef = useRef(null);
-  const userIdRef = useRef(null);
-  const loadedRef = useRef(false);
-  const saveTimer = useRef(null);
-  const [syncState, setSyncState] = useState("loading"); // loading | ready | error
-  const [syncError, setSyncError] = useState(null);
-
-  // Connect anonymously and load this device's saved ledger.
+  /* ---------- persistence ---------- */
   useEffect(() => {
     (async () => {
       try {
-        if (!window.supabase || !window.supabase.createClient) {
-          throw new Error("Supabase library didn't load (check your connection).");
+        const r = await window.storage.get("ledger:v1");
+        if (r && r.value) {
+          const s = JSON.parse(r.value);
+          setFocus(s.focus || {});
+          setLogs(s.logs || []);
+          setChallenges(s.challenges || []);
+          setChecked(s.checked || {});
+          setFreeBlocks(s.freeBlocks || []);
+          setXp(s.xp || 0);
+          setScores(s.scores || {});
+          setBests(s.bests || {});
+          setCourses(s.courses || {});
+          setWork(s.work || {});
+          setBonus(s.bonus || {});
         }
-        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-        clientRef.current = client;
-        let { data: { session } } = await client.auth.getSession();
-        if (!session) {
-          const { data, error } = await client.auth.signInAnonymously();
-          if (error) throw error;
-          session = data.session;
-        }
-        userIdRef.current = session.user.id;
-        const { data: row, error: selErr } = await client
-          .from("ledgers")
-          .select("week_topic, challenges")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        if (selErr) throw selErr;
-        if (row) {
-          setWeekTopic(row.week_topic || "");
-          setChallenges(Array.isArray(row.challenges) ? row.challenges : []);
-        }
-        loadedRef.current = true;
-        setSyncState("ready");
-      } catch (err) {
-        setSyncError(err.message || String(err));
-        setSyncState("error");
+      } catch (e) {
+        /* first run — nothing saved yet */
       }
+      setLoaded(true);
     })();
   }, []);
 
-  // Debounced save whenever the ledger changes (after initial load).
   useEffect(() => {
-    if (!loadedRef.current || syncState !== "ready") return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
+    if (!loaded) return;
+    (async () => {
       try {
-        const { error } = await clientRef.current
-          .from("ledgers")
-          .upsert(
-            { user_id: userIdRef.current, week_topic: weekTopic, challenges },
-            { onConflict: "user_id" }
-          );
-        if (error) throw error;
-        setSyncError(null);
-      } catch (err) {
-        setSyncError("Couldn't save: " + (err.message || String(err)));
+        await window.storage.set(
+          "ledger:v1",
+          JSON.stringify({
+            focus, logs, challenges, checked, freeBlocks, xp, scores, bests,
+            courses, work, bonus,
+          })
+        );
+      } catch (e) {
+        console.error("Could not save", e);
       }
-    }, 600);
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [weekTopic, challenges, syncState]);
+    })();
+  }, [loaded, focus, logs, challenges, checked, freeBlocks, xp, scores, bests, courses, work, bonus]);
 
-  const allDone = challenges.length > 0 && challenges.every((c) => c.done);
+  /* ---------- derived ---------- */
+  const weekDates = useMemo(
+    () => DAYS.map((_, i) => iso(addDays(weekStart, i))),
+    [weekStart]
+  );
+  const weekLogs = logs.filter((l) => weekDates.includes(l.date));
+  const minutesByDay = weekDates.map((d) =>
+    weekLogs.filter((l) => l.date === d).reduce((a, b) => a + Number(b.minutes || 0), 0)
+  );
+  const weekMinutes = minutesByDay.reduce((a, b) => a + b, 0);
+  const weekChallenges = challenges.filter((c) => c.week === weekKey);
+  const weekFree = freeBlocks.filter((f) => f.week === weekKey);
+  const totalTopics = TOPICS.reduce((a, g) => a + g.items.length, 0);
+  const doneTopics = Object.keys(checked).length;
+  const thisWeekFocus = focus[weekKey] || "";
 
-  function addChallenge() {
-    const t = challengeDraft.trim();
-    if (!t) return;
-    setChallenges((prev) => [...prev, { id: Date.now(), text: t, done: false }]);
-    setChallengeDraft("");
-  }
-  function toggleChallenge(id) {
-    setChallenges((prev) => prev.map((c) => (c.id === id ? { ...c, done: !c.done } : c)));
-  }
-  function removeChallenge(id) {
-    setChallenges((prev) => prev.filter((c) => c.id !== id));
-  }
+  const setThisWeekFocus = (v) => setFocus((f) => ({ ...f, [weekKey]: v }));
 
-  function handleFile(e) {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      const match = result.match(/^data:(.*);base64,(.*)$/s);
-      if (!match) { setSlotsError("Couldn't read that image file. Try a different screenshot."); return; }
-      setCalImage({ mediaType: match[1], data: match[2], previewUrl: result });
-      setSlots([]);
-      setSlotsError(null);
-    };
-    reader.readAsDataURL(file);
-  }
+  /* Single door for all XP — quizzes and games both come through here. */
+  const awardXp = (earned) => {
+    if (!earned) return 0;
+    const before = rankIndex(xp);
+    const after = rankIndex(xp + earned);
+    setXp(xp + earned);
+    if (after > before) setPromotion(RANKS[after]);
+    return earned;
+  };
 
-  async function findStudyTime() {
-    if (!calImage) return;
-    if (syncState !== "ready") { setSlotsError("Still connecting — try again in a moment."); return; }
-    setSlotsLoading(true);
-    setSlotsError(null);
-    try {
-      const system = `You look at a screenshot of someone's weekly calendar and find realistic open gaps for focused study. The person wants to learn about: "${weekTopic || "business"}" this week. Return ONLY valid JSON with no markdown fences and no commentary: an array of up to 4 objects shaped like {"day":"Tuesday","time":"7:00–8:00 PM","reason":"short reason this slot works"}. Base it on actual gaps you can see in the image. If the image doesn't look like a calendar, return [].`;
-      const content = [
-        { type: "image", source: { type: "base64", media_type: calImage.mediaType, data: calImage.data } },
-        { type: "text", text: "Find good open time slots for business study this week based on this calendar screenshot." },
-      ];
-      const text = await callClaude(clientRef.current, content, system);
-      const parsed = parseJsonLoose(text);
-      setSlots(Array.isArray(parsed) ? parsed : []);
-    } catch (err) {
-      setSlotsError("Couldn't read that calendar (" + err.message + "). Please try again.");
-    } finally {
-      setSlotsLoading(false);
+  /* A quiz is finished: bank the score, award XP, check the topic off if they passed. */
+  const finishQuiz = (topicName, pct) => {
+    const earned = xpForScore(pct);
+    setScores((s) => ({ ...s, [topicName]: Math.max(s[topicName] || 0, pct) }));
+    if (earned > 0) {
+      awardXp(earned);
+      setChecked((c) => ({ ...c, [topicName]: iso(new Date()) }));
     }
-  }
+    return earned;
+  };
 
-  async function findSources() {
-    const topic = (sourceTopic || weekTopic).trim();
-    if (!topic) return;
-    if (syncState !== "ready") { setSourcesError("Still connecting — try again in a moment."); return; }
-    setSourcesLoading(true);
-    setSourcesError(null);
-    try {
-      const system = `You recommend excellent, real, well-known learning sources on business topics for a self-directed student. Return ONLY valid JSON with no markdown fences and no commentary: an array of exactly 4 objects shaped like {"title":"...","format":"Podcast episode|Article|Book|Video|Course","creator":"...","why":"one short sentence on why this fits the topic"}. Sources must be real, specific, and well-regarded — never invented.`;
-      const text = await callClaude(clientRef.current, `Recommend business learning sources for this week's topic: "${topic}"`, system);
-      const parsed = parseJsonLoose(text);
-      setSources(Array.isArray(parsed) ? parsed : []);
-    } catch (err) {
-      setSourcesError("Couldn't fetch recommendations (" + err.message + "). Please try again.");
-    } finally {
-      setSourcesLoading(false);
+  const setBest = (game, val) =>
+    setBests((b) => ({ ...b, [game]: Math.max(b[game] || 0, val) }));
+
+  /* Coursework gates the quiz: every task ticked, or the quiz stays locked. */
+  const workCount = (topicName) => {
+    const c = courses[topicName];
+    const done = Object.values(work[topicName] || {}).filter(Boolean).length;
+    return { done, total: c ? c.work.length : 0 };
+  };
+  const isUnlocked = (topicName) => {
+    const { done, total } = workCount(topicName);
+    return total > 0 && done === total;
+  };
+
+  const toggleWork = (topicName, idx) => {
+    const t = { ...(work[topicName] || {}) };
+    t[idx] = !t[idx];
+    setWork((w) => ({ ...w, [topicName]: t }));
+
+    /* Finishing all the work pays 20 XP, once per topic. */
+    const c = courses[topicName];
+    const done = Object.values(t).filter(Boolean).length;
+    if (c && done === c.work.length && !bonus[topicName]) {
+      awardXp(20);
+      setBonus((b) => ({ ...b, [topicName]: true }));
     }
-  }
+  };
 
-  const syncLabel =
-    syncState === "loading" ? <span>Connecting…</span>
-    : syncState === "error" ? <span>Offline — changes won't be saved</span>
-    : syncError ? <span>{syncError}</span>
-    : <span><b>Saved</b> to your workspace</span>;
+  const css = `
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+    .lg * { box-sizing: border-box; }
+    .lg { font-family: 'Public Sans', system-ui, sans-serif; color: ${C.ink}; background: ${C.white}; }
+    .serif { font-family: 'Fraunces', Georgia, serif; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .eyebrow { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:${C.slate}; }
+    .card { border:1px solid ${C.rule}; border-radius:2px; background:${C.white}; }
+    .btn { font-family:'Public Sans',sans-serif; font-weight:600; font-size:13px; border:1px solid ${C.blue};
+           background:${C.blue}; color:#fff; padding:9px 14px; border-radius:2px; cursor:pointer; transition:.15s; }
+    .btn:hover:not(:disabled) { background:${C.deep}; border-color:${C.deep}; }
+    .btn:disabled { opacity:.45; cursor:not-allowed; }
+    .btn.ghost { background:transparent; color:${C.blue}; }
+    .btn.ghost:hover:not(:disabled) { background:${C.sky}; color:${C.deep}; }
+    .inp { width:100%; font-family:'Public Sans',sans-serif; font-size:15px; color:${C.ink};
+           border:none; border-bottom:1.5px solid ${C.rule}; background:transparent; padding:8px 2px; outline:none; }
+    .inp:focus { border-bottom-color:${C.blue}; }
+    .inp::placeholder { color:#9DB0CC; }
+    .lg :focus-visible { outline:2px solid ${C.blue}; outline-offset:2px; }
+    .bar { transition: height .5s cubic-bezier(.2,.8,.2,1); }
+    .row:hover { background:${C.sky}; }
+    a { color:${C.blue}; }
+    @media (prefers-reduced-motion: reduce) { .lg * { transition:none !important; animation:none !important; } }
+  `;
 
   return (
-    <div className="ledger-app">
-      <div className="wrap">
-        <div className="header">
-          <div>
-            <div className="wordmark">Ledger</div>
-            <div className="tagline">a weekly practice for learning business</div>
-            <div className={"sync" + (syncState === "error" || syncError ? " err" : "")}>{syncLabel}</div>
-          </div>
-          <div className="venn"><VennMark /></div>
-        </div>
+    <div className="lg" style={{ minHeight: "100vh", padding: "0 0 80px" }}>
+      <style>{css}</style>
 
-        <div className="week-bar">
-          <label>This week's focus</label>
-          <input
-            className="week-input"
-            value={weekTopic}
-            onChange={(e) => setWeekTopic(e.target.value)}
-            placeholder="e.g. unit economics, negotiation, pricing strategy"
+      <Header
+        weekStart={weekStart}
+        setWeekStart={setWeekStart}
+        weekMinutes={weekMinutes}
+        doneTopics={doneTopics}
+        totalTopics={totalTopics}
+        challengesDone={weekChallenges.filter((c) => c.done).length}
+        challengesTotal={weekChallenges.length}
+        xp={xp}
+      />
+
+      <main
+        style={{
+          maxWidth: 1120,
+          margin: "0 auto",
+          padding: "0 24px",
+          display: "grid",
+          gap: 28,
+        }}
+      >
+        <FocusAndLedger
+          focus={thisWeekFocus}
+          setFocus={setThisWeekFocus}
+          weekDates={weekDates}
+          minutesByDay={minutesByDay}
+          freeBlocks={weekFree}
+          onLog={(entry) => setLogs((l) => [...l, { id: Date.now(), ...entry }])}
+          weekLogs={weekLogs}
+          onDeleteLog={(id) => setLogs((l) => l.filter((x) => x.id !== id))}
+        />
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))",
+            gap: 28,
+          }}
+        >
+          <Challenges
+            focus={thisWeekFocus}
+            list={weekChallenges}
+            add={(text) =>
+              setChallenges((c) => [
+                ...c,
+                { id: Date.now() + Math.random(), week: weekKey, text, done: false },
+              ])
+            }
+            toggle={(id) =>
+              setChallenges((c) =>
+                c.map((x) => (x.id === id ? { ...x, done: !x.done } : x))
+              )
+            }
+            remove={(id) => setChallenges((c) => c.filter((x) => x.id !== id))}
           />
+          <Sources defaultQuery={thisWeekFocus} />
         </div>
 
-        <div className="tabs">
-          <button className={"tab-btn" + (tab === "track" ? " active" : "")} onClick={() => setTab("track")}>Track</button>
-          <button className={"tab-btn" + (tab === "schedule" ? " active" : "")} onClick={() => setTab("schedule")}>Schedule</button>
-          <button className={"tab-btn" + (tab === "sources" ? " active" : "")} onClick={() => setTab("sources")}>Sources</button>
-        </div>
+        <CalendarScan
+          weekKey={weekKey}
+          blocks={weekFree}
+          setBlocks={(bs) =>
+            setFreeBlocks((f) => [...f.filter((x) => x.week !== weekKey), ...bs])
+          }
+          clear={() => setFreeBlocks((f) => f.filter((x) => x.week !== weekKey))}
+        />
 
-        <div className="page">
-          <div className="page-inner">
-            {tab === "track" && (
-              <div>
-                <h2 className="section-title">This week's challenges</h2>
-                <p className="section-sub">Set yourself something concrete to do about "{weekTopic || "your topic"}" — not "learn about it," but do something.</p>
-                <div className="add-row">
-                  <input
-                    className="text-input"
-                    value={challengeDraft}
-                    onChange={(e) => setChallengeDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addChallenge()}
-                    placeholder="Add a challenge for this week"
-                  />
-                  <button className="btn" onClick={addChallenge}>Add</button>
-                </div>
-                {challenges.length === 0 ? (
-                  <p className="empty">No challenges yet. Add one above to start the week's page.</p>
-                ) : (
-                  <ul className="challenge-list">
-                    {challenges.map((c) => (
-                      <li className="challenge" key={c.id}>
-                        <span
-                          className={"check" + (c.done ? " done" : "")}
-                          onClick={() => toggleChallenge(c.id)}
-                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleChallenge(c.id); } }}
-                          role="checkbox"
-                          aria-checked={c.done}
-                          tabIndex={0}
-                        />
-                        <span className={"challenge-text" + (c.done ? " done" : "")}>{c.text}</span>
-                        <button className="remove" onClick={() => removeChallenge(c.id)} aria-label="Remove challenge">×</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {allDone && (
-                  <div className="stamp-wrap">
-                    <div className="stamp">
-                      <div className="stamp-top">Week</div>
-                      <div className="stamp-mid">IKIGAI</div>
-                      <div className="stamp-bot">Complete</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+        <Arcade onXp={awardXp} bests={bests} setBest={setBest} />
 
-            {tab === "schedule" && (
-              <div>
-                <h2 className="section-title">Find time for it</h2>
-                <p className="section-sub">Upload a screenshot of your calendar and Ledger will suggest real open slots for "{weekTopic || "business"}" study this week.</p>
-                <div className="drop" onClick={() => fileRef.current && fileRef.current.click()}>
-                  <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
-                  <div className="drop-label">{calImage ? <b>Screenshot loaded — click to replace</b> : <span><b>Click to upload</b> a screenshot of your calendar</span>}</div>
-                </div>
-                {calImage && <img className="cal-preview" src={calImage.previewUrl} alt="Calendar screenshot preview" style={{ marginTop: 14 }} />}
-                {calImage && (
-                  <button className="btn" style={{ marginTop: 4 }} onClick={findStudyTime} disabled={slotsLoading}>
-                    {slotsLoading ? "Reading calendar…" : "Suggest study times"}
-                  </button>
-                )}
-                {slotsLoading && <p className="loading">Reading the ledger…</p>}
-                {slotsError && <p className="error-box">{slotsError}</p>}
-                {!slotsLoading && slots.length > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    {slots.map((s, i) => (
-                      <div className="slot" key={i}>
-                        <span className="slot-time"><span className="slot-day">{s.day}</span>{s.day ? ", " : ""}{s.time}</span>
-                        <span className="slot-reason">{s.reason}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="hint">Your screenshot is sent only to generate this suggestion — it isn't stored anywhere.</p>
-              </div>
-            )}
+        <Checklist
+          checked={checked}
+          scores={scores}
+          workCount={workCount}
+          unlocked={isUnlocked}
+          onCourse={(name) => setCourseTopic(name)}
+          onReset={(name) =>
+            setChecked((c) => {
+              const n = { ...c };
+              delete n[name];
+              return n;
+            })
+          }
+          onStudy={(name) => setThisWeekFocus(name)}
+        />
+      </main>
 
-            {tab === "sources" && (
-              <div>
-                <h2 className="section-title">Sources for this week</h2>
-                <p className="section-sub">Get sources matched to exactly what you want to learn — not a generic reading list.</p>
-                <div className="add-row">
-                  <input
-                    className="text-input"
-                    value={sourceTopic}
-                    onChange={(e) => setSourceTopic(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && findSources()}
-                    placeholder={weekTopic ? `Defaults to "${weekTopic}"` : "e.g. pricing strategy"}
-                  />
-                  <button className="btn" onClick={findSources} disabled={sourcesLoading}>
-                    {sourcesLoading ? "Searching…" : "Find sources"}
-                  </button>
-                </div>
-                {sourcesLoading && <p className="loading">Checking the books…</p>}
-                {sourcesError && <p className="error-box">{sourcesError}</p>}
-                {!sourcesLoading &&
-                  sources.map((s, i) => (
-                    <div className="source-card" key={i}>
-                      <div className="source-top">
-                        <span className="source-title">{s.title}</span>
-                        <span className="source-format">{s.format}</span>
-                      </div>
-                      <div className="source-creator">{s.creator}</div>
-                      <div className="source-why">{s.why}</div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        </div>
+      {courseTopic && (
+        <Course
+          topic={courseTopic}
+          course={courses[courseTopic]}
+          cache={(c) => setCourses((cs) => ({ ...cs, [courseTopic]: c }))}
+          work={work[courseTopic] || {}}
+          toggleWork={(i) => toggleWork(courseTopic, i)}
+          unlocked={isUnlocked(courseTopic)}
+          bonusPaid={!!bonus[courseTopic]}
+          best={scores[courseTopic]}
+          onQuiz={() => {
+            setCourseTopic(null);
+            setQuizTopic(courseTopic);
+          }}
+          onClose={() => setCourseTopic(null)}
+        />
+      )}
+
+      {quizTopic && (
+        <Quiz
+          topic={quizTopic}
+          onClose={() => setQuizTopic(null)}
+          onFinish={finishQuiz}
+        />
+      )}
+
+      {promotion && <Promotion rank={promotion} onClose={() => setPromotion(null)} />}
+    </div>
+  );
+}
+
+/* ========================== Promotion ========================== */
+function Promotion({ rank, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10,26,51,.6)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 60,
+        padding: 20,
+      }}
+    >
+      <div
+        className="card"
+        style={{ padding: "40px 48px", textAlign: "center", maxWidth: 420 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="eyebrow" style={{ color: C.blue }}>Promoted</div>
+        <h2 className="serif" style={{ fontSize: 40, margin: "8px 0 4px" }}>{rank}</h2>
+        <p style={{ color: C.slate, fontSize: 14, marginTop: 0 }}>
+          {rank === "CEO"
+            ? "Top of the ladder. Every rank earned on the quiz floor."
+            : `${RANKS.length - 1 - RANKS.indexOf(rank)} promotions to CEO.`}
+        </p>
+        <button className="btn" style={{ marginTop: 18 }} onClick={onClose}>
+          Back to work
+        </button>
       </div>
     </div>
   );
 }
 
+/* ============================ Header ============================ */
+function Header({
+  weekStart,
+  setWeekStart,
+  weekMinutes,
+  doneTopics,
+  totalTopics,
+  challengesDone,
+  challengesTotal,
+  xp,
+}) {
+  const idx = rankIndex(xp);
+  const into = xpIntoRank(xp);
+  const atTop = idx === RANKS.length - 1;
+  const stat = (n, l) => (
+    <div>
+      <div className="mono" style={{ fontSize: 26, fontWeight: 600, color: C.blue }}>
+        {n}
+      </div>
+      <div className="eyebrow" style={{ marginTop: 2 }}>{l}</div>
+    </div>
+  );
+  return (
+    <header
+      style={{
+        borderBottom: `1px solid ${C.rule}`,
+        background: `linear-gradient(180deg, ${C.sky} 0%, ${C.white} 100%)`,
+        marginBottom: 28,
+      }}
+    >
+      <div style={{ maxWidth: 1120, margin: "0 auto", padding: "34px 24px 26px" }}>
+        <div className="eyebrow">Weekly business learning</div>
+        <h1
+          className="serif"
+          style={{ fontSize: 46, fontWeight: 600, margin: "6px 0 20px", letterSpacing: "-0.02em" }}
+        >
+          The Business Ledger
+        </h1>
+
+        {/* rank ladder — 17 rungs, one promotion every 100 XP */}
+        <div
+          style={{
+            border: `1px solid ${C.rule}`,
+            background: C.white,
+            padding: "14px 18px",
+            marginBottom: 22,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <span className="eyebrow">Rank {idx + 1} of {RANKS.length}</span>
+              <div className="serif" style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.1 }}>
+                {RANKS[idx]}
+              </div>
+            </div>
+            <div className="mono" style={{ fontSize: 12, color: C.slate, textAlign: "right" }}>
+              <span style={{ color: C.blue, fontWeight: 600, fontSize: 15 }}>{xp} XP</span>
+              <div>
+                {atTop
+                  ? "corner office"
+                  : `${XP_PER_RANK - into} XP to ${RANKS[idx + 1]}`}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 3, marginTop: 12 }}>
+            {RANKS.map((r, i) => (
+              <div
+                key={r}
+                title={`${r} — ${i * XP_PER_RANK} XP`}
+                style={{
+                  flex: 1,
+                  height: 8,
+                  background: C.sky,
+                  border: `1px solid ${i <= idx ? C.blue : C.rule}`,
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  className="bar"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    right: "auto",
+                    width:
+                      i < idx ? "100%" : i === idx ? `${atTop ? 100 : into}%` : "0%",
+                    background: C.blue,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div
+            className="eyebrow"
+            style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}
+          >
+            <span>Intern</span>
+            <span>CEO</span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 32,
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+            {stat(`${Math.floor(weekMinutes / 60)}h ${weekMinutes % 60}m`, "Studied this week")}
+            {stat(`${challengesDone}/${challengesTotal || 0}`, "Challenges cleared")}
+            {stat(`${doneTopics}/${totalTopics}`, "Topics learned")}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button className="btn ghost" onClick={() => setWeekStart(addDays(weekStart, -7))}>
+              ← Prev
+            </button>
+            <div className="mono" style={{ fontSize: 13, minWidth: 130, textAlign: "center" }}>
+              {fmtRange(weekStart)}
+            </div>
+            <button className="btn ghost" onClick={() => setWeekStart(addDays(weekStart, 7))}>
+              Next →
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ==================== Focus + the week ledger ==================== */
+function FocusAndLedger({
+  focus,
+  setFocus,
+  weekDates,
+  minutesByDay,
+  freeBlocks,
+  onLog,
+  weekLogs,
+  onDeleteLog,
+}) {
+  const [openDay, setOpenDay] = useState(null);
+  const [topic, setTopic] = useState("");
+  const [mins, setMins] = useState(30);
+  const [note, setNote] = useState("");
+
+  const max = Math.max(120, ...minutesByDay);
+  const freeByDay = DAYS.map((_, i) =>
+    freeBlocks.filter((f) => f.day === i).reduce((a, b) => a + Number(b.minutes || 0), 0)
+  );
+  const today = iso(new Date());
+
+  const save = () => {
+    if (!topic.trim()) return;
+    onLog({ date: weekDates[openDay], topic: topic.trim(), minutes: Number(mins) || 0, note });
+    setTopic("");
+    setMins(30);
+    setNote("");
+    setOpenDay(null);
+  };
+
+  return (
+    <section className="card" style={{ padding: "26px 28px" }}>
+      <div className="eyebrow">This week I want to learn about</div>
+      <input
+        className="inp serif"
+        style={{ fontSize: 28, fontWeight: 600, marginTop: 4, marginBottom: 26 }}
+        placeholder="e.g. unit economics for a coffee cart"
+        value={focus}
+        onChange={(e) => setFocus(e.target.value)}
+      />
+
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <div className="eyebrow">Minutes logged — click a day to add</div>
+        <div className="eyebrow">
+          <span style={{ color: C.blue }}>■</span> studied &nbsp;
+          <span style={{ color: C.rule }}>■</span> free time from calendar
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
+        {DAYS.map((d, i) => {
+          const m = minutesByDay[i];
+          const f = freeByDay[i];
+          const isToday = weekDates[i] === today;
+          return (
+            <button
+              key={d}
+              onClick={() => setOpenDay(openDay === i ? null : i)}
+              style={{
+                border: `1px solid ${openDay === i ? C.blue : C.rule}`,
+                background: C.white,
+                padding: 0,
+                cursor: "pointer",
+                borderRadius: 2,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: 130,
+                  display: "flex",
+                  alignItems: "flex-end",
+                  position: "relative",
+                  background: C.white,
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    height: `${Math.min(100, (f / max) * 100)}%`,
+                    top: "auto",
+                    bottom: 0,
+                    background: C.sky,
+                    borderTop: f ? `1px dashed ${C.rule}` : "none",
+                  }}
+                />
+                <div
+                  className="bar"
+                  style={{
+                    width: "100%",
+                    height: `${Math.min(100, (m / max) * 100)}%`,
+                    background: `linear-gradient(180deg, ${C.blue}, ${C.deep})`,
+                    position: "relative",
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  borderTop: `1px solid ${C.rule}`,
+                  padding: "6px 4px",
+                  background: isToday ? C.blue : C.white,
+                  color: isToday ? "#fff" : C.ink,
+                }}
+              >
+                <div className="mono" style={{ fontSize: 11, fontWeight: 600 }}>{d}</div>
+                <div className="mono" style={{ fontSize: 10, opacity: 0.7 }}>{m || "—"}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {openDay !== null && (
+        <div
+          style={{
+            marginTop: 18,
+            padding: 18,
+            background: C.sky,
+            border: `1px solid ${C.rule}`,
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div className="eyebrow">
+            Log a session — {DAYS[openDay]}, {weekDates[openDay]}
+          </div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <input
+              className="inp"
+              style={{ flex: "2 1 220px", background: C.white, padding: "8px 10px" }}
+              placeholder="What did you learn?"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+            <input
+              className="inp mono"
+              type="number"
+              min="0"
+              style={{ flex: "0 1 90px", background: C.white, padding: "8px 10px" }}
+              value={mins}
+              onChange={(e) => setMins(e.target.value)}
+            />
+            <input
+              className="inp"
+              style={{ flex: "2 1 220px", background: C.white, padding: "8px 10px" }}
+              placeholder="One takeaway (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            <button className="btn" onClick={save}>Save session</button>
+          </div>
+        </div>
+      )}
+
+      {weekLogs.length > 0 && (
+        <div style={{ marginTop: 22 }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Sessions this week</div>
+          {weekLogs
+            .slice()
+            .sort((a, b) => (a.date < b.date ? -1 : 1))
+            .map((l) => (
+              <div
+                key={l.id}
+                className="row"
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "baseline",
+                  padding: "8px 6px",
+                  borderBottom: `1px solid ${C.rule}`,
+                }}
+              >
+                <span className="mono" style={{ fontSize: 11, color: C.slate, width: 84 }}>
+                  {l.date}
+                </span>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{l.topic}</span>
+                <span className="mono" style={{ fontSize: 11, color: C.blue }}>{l.minutes}m</span>
+                <span style={{ fontSize: 13, color: C.slate, flex: 1 }}>{l.note}</span>
+                <button
+                  onClick={() => onDeleteLog(l.id)}
+                  style={{
+                    border: "none",
+                    background: "none",
+                    color: C.slate,
+                    cursor: "pointer",
+                    fontSize: 16,
+                  }}
+                  aria-label="Delete session"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ========================= Challenges ========================= */
+function Challenges({ focus, list, add, toggle, remove }) {
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const generate = async () => {
+    if (!focus.trim()) {
+      setErr("Write what you want to learn this week first — it's the field at the top.");
+      return;
+    }
+    setBusy(true);
+    setErr("");
+    try {
+      const text = await askClaude([
+        {
+          role: "user",
+          content: `A self-directed learner wants to learn about: "${focus}" this week.
+Write 4 concrete, doable challenges that force them to APPLY the concept, not just read about it.
+Each must be finishable in 20–90 minutes, use real companies, real numbers, or their own life, and have a visible output (a sheet, a paragraph, a pitch, a teardown).
+Respond with ONLY a JSON array of strings. No preamble, no markdown.`,
+        },
+      ]);
+      parseJSON(text).forEach((c) => add(String(c)));
+    } catch (e) {
+      setErr("Could not build challenges. Try again.");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <section className="card" style={{ padding: "24px 26px" }}>
+      <div className="eyebrow">Challenges</div>
+      <h2 className="serif" style={{ fontSize: 24, margin: "4px 0 14px" }}>
+        Prove you learned it
+      </h2>
+
+      <div style={{ display: "flex", gap: 10, marginBottom: 6 }}>
+        <input
+          className="inp"
+          placeholder="Write your own challenge"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && draft.trim()) {
+              add(draft.trim());
+              setDraft("");
+            }
+          }}
+        />
+        <button
+          className="btn ghost"
+          disabled={!draft.trim()}
+          onClick={() => {
+            add(draft.trim());
+            setDraft("");
+          }}
+        >
+          Add
+        </button>
+      </div>
+
+      <button className="btn" style={{ width: "100%", marginTop: 12 }} disabled={busy} onClick={generate}>
+        {busy ? "Writing challenges…" : "Build challenges from this week's focus"}
+      </button>
+      {err && <p style={{ color: C.deep, fontSize: 13, marginTop: 10 }}>{err}</p>}
+
+      <div style={{ marginTop: 18 }}>
+        {list.length === 0 && !busy && (
+          <p style={{ color: C.slate, fontSize: 14 }}>
+            No challenges yet. Add one, or build a set from your weekly focus.
+          </p>
+        )}
+        {list.map((c) => (
+          <div
+            key={c.id}
+            className="row"
+            style={{
+              display: "flex",
+              gap: 10,
+              padding: "10px 6px",
+              borderBottom: `1px solid ${C.rule}`,
+              alignItems: "flex-start",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={c.done}
+              onChange={() => toggle(c.id)}
+              style={{ accentColor: C.blue, width: 16, height: 16, marginTop: 3 }}
+            />
+            <span
+              style={{
+                flex: 1,
+                fontSize: 14,
+                lineHeight: 1.45,
+                color: c.done ? C.slate : C.ink,
+                textDecoration: c.done ? "line-through" : "none",
+              }}
+            >
+              {c.text}
+            </span>
+            <button
+              onClick={() => remove(c.id)}
+              style={{ border: "none", background: "none", color: C.slate, cursor: "pointer" }}
+              aria-label="Remove challenge"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* =========================== Sources =========================== */
+function Sources({ defaultQuery }) {
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [items, setItems] = useState([]);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (defaultQuery && !q) setQ(defaultQuery);
+  }, [defaultQuery]);
+
+  const find = async () => {
+    if (!q.trim()) return;
+    setBusy(true);
+    setErr("");
+    setItems([]);
+    try {
+      const text = await askClaude(
+        [
+          {
+            role: "user",
+            content: `Find 5 genuinely good, currently available learning sources for someone studying "${q}" in business.
+Mix formats: one book, one free course or video, one article or newsletter, one case study or real-world teardown, one podcast or talk.
+Search the web to confirm they exist and get links.
+Respond with ONLY a JSON array, no markdown:
+[{"title":"","author":"","format":"Book|Course|Article|Case study|Podcast","minutes":"time to consume, e.g. 25 min","why":"one sentence on what this gives you","url":""}]`,
+          },
+        ],
+        [{ type: "web_search_20250305", name: "web_search" }]
+      );
+      setItems(parseJSON(text));
+    } catch (e) {
+      setErr("Search came back empty. Try rewording the topic.");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <section className="card" style={{ padding: "24px 26px" }}>
+      <div className="eyebrow">Sources</div>
+      <h2 className="serif" style={{ fontSize: 24, margin: "4px 0 14px" }}>
+        Where to learn it
+      </h2>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <input
+          className="inp"
+          placeholder="Type a topic — e.g. pricing strategy"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && find()}
+        />
+        <button className="btn" disabled={busy || !q.trim()} onClick={find}>
+          {busy ? "Searching…" : "Find sources"}
+        </button>
+      </div>
+      {err && <p style={{ color: C.deep, fontSize: 13, marginTop: 10 }}>{err}</p>}
+
+      <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
+        {items.length === 0 && !busy && !err && (
+          <p style={{ color: C.slate, fontSize: 14 }}>
+            Search a topic and you'll get five sources — a book, a course, an article, a case
+            study, and something to listen to.
+          </p>
+        )}
+        {items.map((s, i) => (
+          <div key={i} style={{ borderLeft: `2px solid ${C.blue}`, paddingLeft: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <span className="eyebrow" style={{ color: C.blue }}>{s.format}</span>
+              <span className="mono" style={{ fontSize: 10, color: C.slate }}>{s.minutes}</span>
+            </div>
+            <div style={{ fontWeight: 600, fontSize: 15, margin: "2px 0" }}>
+              {s.url ? (
+                <a href={s.url} target="_blank" rel="noreferrer">
+                  {s.title}
+                </a>
+              ) : (
+                s.title
+              )}
+            </div>
+            <div style={{ fontSize: 12, color: C.slate }}>{s.author}</div>
+            <div style={{ fontSize: 13, marginTop: 4, lineHeight: 1.45 }}>{s.why}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ======================= Calendar scan ======================= */
+function CalendarScan({ weekKey, blocks, setBlocks, clear }) {
+  const [img, setImg] = useState(null);      // { data, media, preview }
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const fileRef = useRef(null);
+
+  const pick = async (file) => {
+    if (!file) return;
+    setErr("");
+    const data = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(",")[1]);
+      r.onerror = () => rej(new Error("read failed"));
+      r.readAsDataURL(file);
+    });
+    setImg({ data, media: file.type, preview: URL.createObjectURL(file) });
+  };
+
+  const analyze = async () => {
+    if (!img) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const text = await askClaude([
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: img.media, data: img.data },
+            },
+            {
+              type: "text",
+              text: `This is a screenshot of my weekly calendar. Read the booked events and find the gaps where I am free.
+Only count gaps between 7:00 and 22:00, and only gaps of 30 minutes or more. Ignore gaps that look like commuting or meals if labeled.
+Respond with ONLY a JSON array, no markdown:
+[{"day":0,"start":"14:00","end":"15:30","minutes":90,"label":"gap after standup"}]
+where day is 0 for Monday through 6 for Sunday. If a day is not visible in the screenshot, leave it out.`,
+            },
+          ],
+        },
+      ]);
+      const found = parseJSON(text).map((b, i) => ({
+        id: `${Date.now()}-${i}`,
+        week: weekKey,
+        day: Number(b.day),
+        start: b.start,
+        end: b.end,
+        minutes: Number(b.minutes) || 0,
+        label: b.label || "",
+      }));
+      if (!found.length) setErr("No open blocks found. Try a clearer or wider screenshot.");
+      setBlocks(found);
+    } catch (e) {
+      setErr("Couldn't read that calendar. Make sure times and events are legible.");
+    }
+    setBusy(false);
+  };
+
+  const totalFree = blocks.reduce((a, b) => a + b.minutes, 0);
+
+  return (
+    <section className="card" style={{ padding: "24px 26px" }}>
+      <div className="eyebrow">Calendar</div>
+      <h2 className="serif" style={{ fontSize: 24, margin: "4px 0 6px" }}>
+        Find the hours you actually have
+      </h2>
+      <p style={{ fontSize: 14, color: C.slate, marginTop: 0, maxWidth: 620 }}>
+        Drop in a screenshot of this week's calendar. Open blocks get read out of the gaps and
+        drawn behind your study bars above.
+      </p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(240px, 1fr) 1.4fr",
+          gap: 24,
+          marginTop: 16,
+          alignItems: "start",
+        }}
+      >
+        <div>
+          <div
+            onClick={() => fileRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              pick(e.dataTransfer.files[0]);
+            }}
+            style={{
+              border: `1.5px dashed ${C.blue}`,
+              background: C.sky,
+              borderRadius: 2,
+              minHeight: 160,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              overflow: "hidden",
+              padding: img ? 0 : 20,
+              textAlign: "center",
+            }}
+          >
+            {img ? (
+              <img
+                src={img.preview}
+                alt="Calendar screenshot"
+                style={{ width: "100%", display: "block" }}
+              />
+            ) : (
+              <span style={{ fontSize: 14, color: C.deep, fontWeight: 600 }}>
+                Click or drop a calendar screenshot
+              </span>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => pick(e.target.files[0])}
+          />
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button className="btn" disabled={!img || busy} onClick={analyze}>
+              {busy ? "Reading calendar…" : "Find free time"}
+            </button>
+            {blocks.length > 0 && (
+              <button className="btn ghost" onClick={clear}>
+                Clear
+              </button>
+            )}
+          </div>
+          {err && <p style={{ color: C.deep, fontSize: 13, marginTop: 10 }}>{err}</p>}
+        </div>
+
+        <div>
+          {blocks.length === 0 ? (
+            <p style={{ color: C.slate, fontSize: 14 }}>
+              Free blocks will be listed here, day by day, with how long each one runs.
+            </p>
+          ) : (
+            <>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>
+                {Math.floor(totalFree / 60)}h {totalFree % 60}m open this week
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {blocks
+                  .slice()
+                  .sort((a, b) => a.day - b.day || a.start.localeCompare(b.start))
+                  .map((b) => (
+                    <div
+                      key={b.id}
+                      className="row"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "8px 10px",
+                        border: `1px solid ${C.rule}`,
+                        background: C.white,
+                      }}
+                    >
+                      <span
+                        className="mono"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: C.blue,
+                          color: "#fff",
+                          padding: "3px 7px",
+                        }}
+                      >
+                        {DAYS[b.day] || "?"}
+                      </span>
+                      <span className="mono" style={{ fontSize: 13 }}>
+                        {b.start} – {b.end}
+                      </span>
+                      <span className="mono" style={{ fontSize: 11, color: C.blue }}>
+                        {b.minutes}m
+                      </span>
+                      <span style={{ fontSize: 13, color: C.slate, flex: 1 }}>{b.label}</span>
+                    </div>
+                  ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============================ Course ============================ */
+/* Three lessons, then three pieces of work. The quiz stays locked until
+   every task is ticked. Finishing the work pays 20 XP, once. */
+function Course({
+  topic, course, cache, work, toggleWork, unlocked, bonusPaid, best, onQuiz, onClose,
+}) {
+  const [busy, setBusy] = useState(!course);
+  const [err, setErr] = useState("");
+  const [tab, setTab] = useState(0);
+
+  useEffect(() => {
+    if (course) return;
+    (async () => {
+      try {
+        const text = await askClaude([
+          {
+            role: "user",
+            content: `Build a short, punchy course on the business concept "${topic}" for a self-taught learner.
+Return ONLY this JSON, no markdown:
+{"brief":"two sentences on what this concept is and why it decides real money",
+ "lessons":[{"title":"","points":["","",""],"example":"one concrete example with real numbers or a named company"}],
+ "work":[{"task":"","output":"what they should end up holding"}]}
+Exactly 3 lessons and exactly 3 pieces of work.
+Lesson points: under 20 words each, plain language, no filler.
+Work must be active — calculate something, tear down a real company, write a paragraph, interview someone. Each doable in 15–40 minutes. No "read an article".`,
+          },
+        ]);
+        const c = parseJSON(text);
+        if (!c.lessons?.length || !c.work?.length) throw new Error("bad shape");
+        cache(c);
+      } catch (e) {
+        setErr("Couldn't build the course. Close and open it again.");
+      }
+      setBusy(false);
+    })();
+  }, [topic]);
+
+  const done = Object.values(work).filter(Boolean).length;
+  const total = course ? course.work.length : 3;
+
+  const shell = (children) => (
+    <div
+      style={{
+        position: "fixed", inset: 0, background: "rgba(10,26,51,.6)", display: "flex",
+        alignItems: "center", justifyContent: "center", zIndex: 55, padding: 20,
+      }}
+    >
+      <div
+        className="card"
+        style={{ width: "100%", maxWidth: 660, padding: "26px 30px", maxHeight: "90vh", overflowY: "auto" }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div className="eyebrow">Course</div>
+            <h2 className="serif" style={{ fontSize: 26, margin: "2px 0 0" }}>{topic}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ border: "none", background: "none", fontSize: 20, color: C.slate, cursor: "pointer" }}
+            aria-label="Close course"
+          >
+            ×
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+
+  if (busy)
+    return shell(
+      <p style={{ color: C.slate, fontSize: 14, marginTop: 18 }}>Writing your lessons and coursework…</p>
+    );
+
+  if (err || !course)
+    return shell(
+      <>
+        <p style={{ color: C.deep, fontSize: 14, marginTop: 18 }}>{err || "No course yet."}</p>
+        <button className="btn" onClick={onClose}>Close</button>
+      </>
+    );
+
+  const L = course.lessons;
+  const lesson = L[tab];
+
+  return shell(
+    <>
+      <p style={{ fontSize: 15, lineHeight: 1.6, color: C.ink, margin: "12px 0 20px" }}>
+        {course.brief}
+      </p>
+
+      {/* lesson tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {L.map((l, i) => (
+          <button
+            key={i}
+            onClick={() => setTab(i)}
+            className="mono"
+            style={{
+              flex: 1,
+              padding: "8px 6px",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: ".06em",
+              border: `1px solid ${i === tab ? C.blue : C.rule}`,
+              background: i === tab ? C.blue : C.white,
+              color: i === tab ? "#fff" : C.slate,
+              cursor: "pointer",
+              borderRadius: 2,
+            }}
+          >
+            LESSON {i + 1}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ border: `1px solid ${C.rule}`, padding: "18px 20px" }}>
+        <h3 className="serif" style={{ fontSize: 20, margin: "0 0 12px" }}>{lesson.title}</h3>
+        <ul style={{ margin: 0, paddingLeft: 18 }}>
+          {lesson.points.map((p, i) => (
+            <li key={i} style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 6 }}>{p}</li>
+          ))}
+        </ul>
+        {lesson.example && (
+          <div style={{ marginTop: 14, background: C.sky, padding: "12px 14px", borderLeft: `2px solid ${C.blue}` }}>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>In practice</div>
+            <p style={{ fontSize: 14, lineHeight: 1.55, margin: 0 }}>{lesson.example}</p>
+          </div>
+        )}
+        {tab < L.length - 1 && (
+          <button className="btn ghost" style={{ marginTop: 14 }} onClick={() => setTab(tab + 1)}>
+            Next lesson →
+          </button>
+        )}
+      </div>
+
+      {/* the work */}
+      <div style={{ marginTop: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div className="eyebrow">The work — {done}/{total} done</div>
+          <div className="mono" style={{ fontSize: 10, color: bonusPaid ? C.blue : C.slate }}>
+            {bonusPaid ? "+20 XP BANKED" : "+20 XP WHEN ALL THREE ARE DONE"}
+          </div>
+        </div>
+        <div style={{ height: 3, background: C.sky, margin: "8px 0 12px" }}>
+          <div className="bar" style={{ height: "100%", width: `${(done / total) * 100}%`, background: C.blue }} />
+        </div>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          {course.work.map((w, i) => {
+            const on = !!work[i];
+            return (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  padding: "12px 14px",
+                  border: `1px solid ${on ? C.blue : C.rule}`,
+                  background: on ? C.sky : C.white,
+                  alignItems: "flex-start",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => toggleWork(i)}
+                  style={{ accentColor: C.blue, width: 16, height: 16, marginTop: 2 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.45 }}>{w.task}</div>
+                  {w.output && (
+                    <div className="mono" style={{ fontSize: 10, color: C.slate, marginTop: 4, letterSpacing: ".04em" }}>
+                      HAND IN: {w.output}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* the gate */}
+      <div style={{ marginTop: 22, borderTop: `1px solid ${C.rule}`, paddingTop: 18 }}>
+        <button
+          className="btn"
+          style={{ width: "100%", padding: "13px 0", fontSize: 14 }}
+          disabled={!unlocked}
+          onClick={onQuiz}
+        >
+          {unlocked ? "Take the quiz →" : `Quiz locked — finish the work (${done}/${total})`}
+        </button>
+        <p className="mono" style={{ fontSize: 10, color: C.slate, textAlign: "center", marginTop: 10 }}>
+          10 QUESTIONS · 8 RIGHT = 40 XP · 9 RIGHT = 60 XP · 10 RIGHT = 100 XP
+          {best !== undefined && ` · YOUR BEST ${best}%`}
+        </p>
+      </div>
+    </>
+  );
+}
+
+/* ============================ Quiz ============================ */
+/* 10 questions. 8/10 → 40 XP, 9/10 → 60 XP, 10/10 → 100 XP.
+   Anything under 8 earns nothing and the topic stays unchecked. */
+function Quiz({ topic, onClose, onFinish }) {
+  const [qs, setQs] = useState([]);
+  const [i, setI] = useState(0);
+  const [picks, setPicks] = useState([]);
+  const [reveal, setReveal] = useState(null); // index picked for current q
+  const [busy, setBusy] = useState(true);
+  const [err, setErr] = useState("");
+  const [result, setResult] = useState(null); // { pct, correct, earned }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const text = await askClaude([
+          {
+            role: "user",
+            content: `Write a 10-question multiple-choice quiz on the business concept "${topic}".
+Test real understanding: definitions, when to apply it, reading a small scenario, and spotting a wrong use of it. No trick questions.
+Keep every question under 22 words and every option under 9 words. Vary which position the answer sits in.
+Respond with ONLY a JSON array of 10 objects, no markdown:
+[{"q":"","options":["","","",""],"answer":0,"why":"one short sentence explaining the right answer"}]`,
+          },
+        ]);
+        const parsed = parseJSON(text).slice(0, 10);
+        if (parsed.length < 10) throw new Error("short quiz");
+        setQs(parsed);
+      } catch (e) {
+        setErr("Couldn't build the quiz. Close and try again.");
+      }
+      setBusy(false);
+    })();
+  }, [topic]);
+
+  const choose = (idx) => {
+    if (reveal !== null) return;
+    setReveal(idx);
+    setPicks((p) => [...p, idx]);
+  };
+
+  const next = () => {
+    if (i === qs.length - 1) {
+      const correct = picks.filter((p, n) => p === qs[n].answer).length;
+      const pct = correct * 10;
+      const earned = onFinish(topic, pct);
+      setResult({ pct, correct, earned });
+    } else {
+      setI(i + 1);
+      setReveal(null);
+    }
+  };
+
+  const shell = (children) => (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10,26,51,.6)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        padding: 20,
+      }}
+    >
+      <div
+        className="card"
+        style={{ width: "100%", maxWidth: 560, padding: "26px 30px", maxHeight: "88vh", overflowY: "auto" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+
+  if (busy)
+    return shell(
+      <>
+        <div className="eyebrow">Quiz</div>
+        <h2 className="serif" style={{ fontSize: 24, margin: "4px 0 8px" }}>{topic}</h2>
+        <p style={{ color: C.slate, fontSize: 14 }}>Writing ten questions…</p>
+      </>
+    );
+
+  if (err)
+    return shell(
+      <>
+        <p style={{ color: C.deep, fontSize: 14 }}>{err}</p>
+        <button className="btn" onClick={onClose}>Close</button>
+      </>
+    );
+
+  if (result) {
+    const passed = result.earned > 0;
+    return shell(
+      <div style={{ textAlign: "center", padding: "10px 0" }}>
+        <div className="eyebrow">{passed ? "Passed" : "Not yet"}</div>
+        <div
+          className="mono"
+          style={{ fontSize: 56, fontWeight: 600, color: passed ? C.blue : C.slate, lineHeight: 1.1 }}
+        >
+          {result.pct}%
+        </div>
+        <p style={{ fontSize: 14, color: C.slate, marginTop: 4 }}>
+          {result.correct} of 10 correct
+        </p>
+        {passed ? (
+          <>
+            <div
+              className="serif"
+              style={{ fontSize: 30, fontWeight: 600, color: C.deep, margin: "14px 0 2px" }}
+            >
+              +{result.earned} XP
+            </div>
+            <p style={{ fontSize: 14, color: C.slate, marginTop: 0 }}>
+              {topic} is checked off the syllabus.
+            </p>
+          </>
+        ) : (
+          <p style={{ fontSize: 14, marginTop: 14, maxWidth: 380, marginInline: "auto" }}>
+            You need 80% to bank XP and check this off. Study it, then take the quiz again —
+            you'll get a fresh set of questions.
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 20 }}>
+          <button className="btn" onClick={onClose}>Done</button>
+        </div>
+        <div className="eyebrow" style={{ marginTop: 16 }}>
+          80% = 40 XP &nbsp;·&nbsp; 90% = 60 XP &nbsp;·&nbsp; 100% = 100 XP
+        </div>
+      </div>
+    );
+  }
+
+  const q = qs[i];
+  return shell(
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <div>
+          <div className="eyebrow">Quiz</div>
+          <h2 className="serif" style={{ fontSize: 22, margin: "2px 0 0" }}>{topic}</h2>
+        </div>
+        <button
+          onClick={onClose}
+          style={{ border: "none", background: "none", fontSize: 20, color: C.slate, cursor: "pointer" }}
+          aria-label="Leave quiz"
+        >
+          ×
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 3, margin: "16px 0 20px" }}>
+        {qs.map((_, n) => (
+          <div
+            key={n}
+            style={{
+              flex: 1,
+              height: 4,
+              background:
+                n < i ? (picks[n] === qs[n].answer ? C.blue : C.rule) : n === i ? C.deep : C.sky,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="mono" style={{ fontSize: 11, color: C.slate }}>
+        {String(i + 1).padStart(2, "0")} / 10
+      </div>
+      <p style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.4, margin: "6px 0 18px" }}>{q.q}</p>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        {q.options.map((o, n) => {
+          const isAnswer = n === q.answer;
+          const picked = reveal === n;
+          let bg = C.white,
+            bd = C.rule,
+            fg = C.ink;
+          if (reveal !== null) {
+            if (isAnswer) {
+              bg = C.sky;
+              bd = C.blue;
+              fg = C.deep;
+            } else if (picked) {
+              bd = C.slate;
+              fg = C.slate;
+            }
+          }
+          return (
+            <button
+              key={n}
+              onClick={() => choose(n)}
+              style={{
+                textAlign: "left",
+                border: `1.5px solid ${bd}`,
+                background: bg,
+                color: fg,
+                padding: "12px 14px",
+                borderRadius: 2,
+                cursor: reveal === null ? "pointer" : "default",
+                fontSize: 14,
+                fontFamily: "'Public Sans', sans-serif",
+                display: "flex",
+                gap: 10,
+              }}
+            >
+              <span className="mono" style={{ fontSize: 12, color: C.blue, fontWeight: 600 }}>
+                {"ABCD"[n]}
+              </span>
+              <span style={{ flex: 1 }}>{o}</span>
+              {reveal !== null && isAnswer && <span style={{ color: C.blue }}>✓</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {reveal !== null && (
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontSize: 13, color: C.slate, lineHeight: 1.5, borderLeft: `2px solid ${C.blue}`, paddingLeft: 10 }}>
+            {q.why}
+          </p>
+          <button className="btn" style={{ width: "100%", marginTop: 12 }} onClick={next}>
+            {i === qs.length - 1 ? "See your score" : "Next question"}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ============================ Arcade ============================ */
+const GAME_LIST = [
+  { id: "match", name: "Term Match", line: "Pair eight terms with their definitions before the clock runs.", xp: "up to 30 XP" },
+  { id: "ledger", name: "Ledger Drop", line: "Asset, liability or equity? Sort as many as you can in 60 seconds.", xp: "up to 30 XP" },
+  { id: "jargon", name: "Jargon or Junk", line: "Real business term, or something I made up? 45 seconds.", xp: "up to 25 XP" },
+  { id: "metric", name: "Metric Sprint", line: "Six live calculations — margin, CAC, runway, break-even.", xp: "up to 30 XP" },
+  { id: "runway", name: "Startup Runway", line: "Six decisions, one coffee cart. Keep the cash alive.", xp: "up to 40 XP" },
+];
+
+function Arcade({ onXp, bests, setBest }) {
+  const [open, setOpen] = useState(null);
+
+  const finish = (id, xp, best) => {
+    onXp(xp);
+    if (best !== undefined) setBest(id, best);
+  };
+
+  return (
+    <section className="card" style={{ padding: "24px 26px" }}>
+      <div className="eyebrow">The arcade</div>
+      <h2 className="serif" style={{ fontSize: 24, margin: "4px 0 2px" }}>
+        Five ways to drill it in
+      </h2>
+      <p className="mono" style={{ fontSize: 11, color: C.slate, margin: "0 0 18px" }}>
+        Games bank XP toward your next rank — quizzes still pay the most
+      </p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {GAME_LIST.map((g, i) => (
+          <button
+            key={g.id}
+            onClick={() => setOpen(g.id)}
+            style={{
+              textAlign: "left",
+              border: `1px solid ${C.rule}`,
+              background: C.white,
+              padding: "16px 16px 14px",
+              cursor: "pointer",
+              borderRadius: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              minHeight: 150,
+              transition: ".15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = C.sky;
+              e.currentTarget.style.borderColor = C.blue;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = C.white;
+              e.currentTarget.style.borderColor = C.rule;
+            }}
+          >
+            <span className="mono" style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span className="serif" style={{ fontSize: 19, fontWeight: 600, lineHeight: 1.15 }}>
+              {g.name}
+            </span>
+            <span style={{ fontSize: 13, color: C.slate, lineHeight: 1.4, flex: 1 }}>{g.line}</span>
+            <span
+              className="mono"
+              style={{
+                fontSize: 10,
+                color: C.slate,
+                borderTop: `1px solid ${C.rule}`,
+                paddingTop: 8,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <span>{g.xp}</span>
+              {bests[g.id] ? <span style={{ color: C.blue }}>BEST {bests[g.id]}</span> : <span>PLAY →</span>}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {open === "match" && <TermMatch onClose={() => setOpen(null)} onDone={finish} />}
+      {open === "ledger" && <LedgerDrop onClose={() => setOpen(null)} onDone={finish} />}
+      {open === "jargon" && <JargonJunk onClose={() => setOpen(null)} onDone={finish} />}
+      {open === "metric" && <MetricSprint onClose={() => setOpen(null)} onDone={finish} />}
+      {open === "runway" && <StartupRunway onClose={() => setOpen(null)} onDone={finish} />}
+    </section>
+  );
+}
+
+/* Shared modal shell for the games */
+function GameShell({ title, sub, onClose, children, width = 620 }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10,26,51,.6)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        padding: 20,
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          width: "100%",
+          maxWidth: width,
+          padding: "24px 28px",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div className="eyebrow">Arcade</div>
+            <h2 className="serif" style={{ fontSize: 24, margin: "2px 0 0" }}>{title}</h2>
+            {sub && (
+              <p className="mono" style={{ fontSize: 11, color: C.slate, margin: "4px 0 0" }}>{sub}</p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            style={{ border: "none", background: "none", fontSize: 20, color: C.slate, cursor: "pointer" }}
+            aria-label="Close game"
+          >
+            ×
+          </button>
+        </div>
+        <div style={{ marginTop: 18 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function GameOver({ headline, detail, xp, onAgain, onClose }) {
+  return (
+    <div style={{ textAlign: "center", padding: "18px 0 6px" }}>
+      <div className="eyebrow">Game over</div>
+      <div className="serif" style={{ fontSize: 40, fontWeight: 600, lineHeight: 1.1, margin: "6px 0" }}>
+        {headline}
+      </div>
+      <p style={{ fontSize: 14, color: C.slate, maxWidth: 420, margin: "0 auto" }}>{detail}</p>
+      <div className="mono" style={{ fontSize: 26, fontWeight: 600, color: C.blue, marginTop: 16 }}>
+        +{xp} XP
+      </div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 20 }}>
+        <button className="btn" onClick={onAgain}>Play again</button>
+        <button className="btn ghost" onClick={onClose}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---- 01. Term Match ---- */
+function TermMatch({ onClose, onDone }) {
+  const PAIRS = 8;
+  const [round, setRound] = useState(0);
+  const deck = useMemo(() => shuffle(TERM_BANK).slice(0, PAIRS), [round]);
+  const [defs, setDefs] = useState(() => shuffle(deck.map((d, i) => i)));
+  const [pickTerm, setPickTerm] = useState(null);
+  const [matched, setMatched] = useState([]);
+  const [wrong, setWrong] = useState(null);
+  const [misses, setMisses] = useState(0);
+  const [t, setT] = useState(0);
+  const [over, setOver] = useState(null);
+
+  useEffect(() => setDefs(shuffle(deck.map((d, i) => i))), [deck]);
+
+  useEffect(() => {
+    if (over) return;
+    const id = setInterval(() => setT((x) => x + 1), 1000);
+    return () => clearInterval(id);
+  }, [over]);
+
+  useEffect(() => {
+    if (matched.length === PAIRS && !over) {
+      const xp = Math.max(10, 30 - misses * 3 - Math.max(0, Math.floor((t - 60) / 15)));
+      onDone("match", xp, PAIRS * 10 - misses);
+      setOver({ xp });
+    }
+  }, [matched]);
+
+  const tryPair = (defIdx) => {
+    if (pickTerm === null || matched.includes(defIdx)) return;
+    if (pickTerm === defIdx) {
+      setMatched((m) => [...m, defIdx]);
+      setPickTerm(null);
+    } else {
+      setMisses((x) => x + 1);
+      setWrong(defIdx);
+      setTimeout(() => setWrong(null), 450);
+      setPickTerm(null);
+    }
+  };
+
+  const reset = () => {
+    setRound((r) => r + 1);
+    setMatched([]);
+    setMisses(0);
+    setT(0);
+    setPickTerm(null);
+    setOver(null);
+  };
+
+  return (
+    <GameShell
+      title="Term Match"
+      sub={`${matched.length}/${PAIRS} paired · ${misses} misses · ${t}s`}
+      onClose={onClose}
+      width={760}
+    >
+      {over ? (
+        <GameOver
+          headline={`${t} seconds`}
+          detail={`All eight paired with ${misses} ${misses === 1 ? "miss" : "misses"}. Clean and fast pays best — no misses under a minute is the top score.`}
+          xp={over.xp}
+          onAgain={reset}
+          onClose={onClose}
+        />
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 14 }}>
+          <div style={{ display: "grid", gap: 6, alignContent: "start" }}>
+            <div className="eyebrow" style={{ marginBottom: 2 }}>Terms</div>
+            {deck.map((d, i) => {
+              const done = matched.includes(i);
+              const on = pickTerm === i;
+              return (
+                <button
+                  key={d[0]}
+                  disabled={done}
+                  onClick={() => setPickTerm(i)}
+                  style={{
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    fontFamily: "'Public Sans',sans-serif",
+                    border: `1.5px solid ${done ? C.rule : on ? C.deep : C.blue}`,
+                    background: done ? C.sky : on ? C.blue : C.white,
+                    color: done ? C.slate : on ? "#fff" : C.ink,
+                    borderRadius: 2,
+                    cursor: done ? "default" : "pointer",
+                    textDecoration: done ? "line-through" : "none",
+                  }}
+                >
+                  {d[0]}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "grid", gap: 6, alignContent: "start" }}>
+            <div className="eyebrow" style={{ marginBottom: 2 }}>Definitions</div>
+            {defs.map((di) => {
+              const done = matched.includes(di);
+              return (
+                <button
+                  key={di}
+                  disabled={done}
+                  onClick={() => tryPair(di)}
+                  style={{
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    fontSize: 13,
+                    lineHeight: 1.4,
+                    fontFamily: "'Public Sans',sans-serif",
+                    border: `1.5px solid ${wrong === di ? C.deep : done ? C.blue : C.rule}`,
+                    background: done ? C.sky : wrong === di ? "#F3F6FC" : C.white,
+                    color: done ? C.deep : C.ink,
+                    borderRadius: 2,
+                    cursor: done ? "default" : "pointer",
+                  }}
+                >
+                  {done && <span style={{ color: C.blue, fontWeight: 600 }}>✓ </span>}
+                  {deck[di][1]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {!over && (
+        <p style={{ fontSize: 12, color: C.slate, marginTop: 14 }}>
+          Click a term, then its definition. A wrong pair costs you 3 XP.
+        </p>
+      )}
+    </GameShell>
+  );
+}
+
+/* ---- 02. Ledger Drop ---- */
+function LedgerDrop({ onClose, onDone }) {
+  const KINDS = ["Asset", "Liability", "Equity"];
+  const [queue, setQueue] = useState(() => shuffle(LEDGER_ITEMS));
+  const [i, setI] = useState(0);
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [flash, setFlash] = useState(null);
+  const [time, setTime] = useState(60);
+  const [over, setOver] = useState(null);
+
+  useEffect(() => {
+    if (over) return;
+    if (time <= 0) {
+      const xp = Math.min(30, score * 2);
+      onDone("ledger", xp, score);
+      setOver({ xp });
+      return;
+    }
+    const id = setTimeout(() => setTime((t) => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [time, over]);
+
+  const item = queue[i % queue.length];
+
+  const answer = (k) => {
+    const right = k === item[1];
+    setFlash({ right, correct: item[1] });
+    if (right) {
+      setScore((s) => s + 1 + (streak >= 4 ? 1 : 0));
+      setStreak((s) => s + 1);
+    } else {
+      setStreak(0);
+    }
+    setTimeout(() => {
+      setFlash(null);
+      setI((x) => x + 1);
+    }, 500);
+  };
+
+  const reset = () => {
+    setQueue(shuffle(LEDGER_ITEMS));
+    setI(0);
+    setScore(0);
+    setStreak(0);
+    setTime(60);
+    setOver(null);
+  };
+
+  return (
+    <GameShell
+      title="Ledger Drop"
+      sub={over ? "" : `${time}s left · score ${score}${streak >= 4 ? " · on fire, 2× points" : ""}`}
+      onClose={onClose}
+    >
+      {over ? (
+        <GameOver
+          headline={`${score} sorted`}
+          detail="Assets are what the business owns, liabilities are what it owes, equity is what's left for the owners. Five in a row doubles your points."
+          xp={over.xp}
+          onAgain={reset}
+          onClose={onClose}
+        />
+      ) : (
+        <>
+          <div style={{ height: 4, background: C.sky, marginBottom: 20 }}>
+            <div style={{ height: "100%", width: `${(time / 60) * 100}%`, background: C.blue }} />
+          </div>
+          <div
+            style={{
+              border: `1.5px solid ${flash ? (flash.right ? C.blue : C.slate) : C.rule}`,
+              background: flash?.right ? C.sky : C.white,
+              padding: "38px 20px",
+              textAlign: "center",
+              marginBottom: 16,
+              borderRadius: 2,
+            }}
+          >
+            <div className="serif" style={{ fontSize: 26, fontWeight: 600 }}>{item[0]}</div>
+            {flash && (
+              <div className="mono" style={{ fontSize: 12, color: flash.right ? C.blue : C.slate, marginTop: 8 }}>
+                {flash.right ? "CORRECT" : `IT'S A ${flash.correct.toUpperCase()}`}
+              </div>
+            )}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+            {KINDS.map((k) => (
+              <button key={k} className="btn" style={{ padding: "16px 0" }} onClick={() => answer(k)}>
+                {k}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </GameShell>
+  );
+}
+
+/* ---- 03. Jargon or Junk ---- */
+function JargonJunk({ onClose, onDone }) {
+  const [queue, setQueue] = useState(() => shuffle(JARGON));
+  const [i, setI] = useState(0);
+  const [score, setScore] = useState(0);
+  const [flash, setFlash] = useState(null);
+  const [time, setTime] = useState(45);
+  const [over, setOver] = useState(null);
+
+  useEffect(() => {
+    if (over) return;
+    if (time <= 0) {
+      const xp = Math.max(0, Math.min(25, score * 2));
+      onDone("jargon", xp, score);
+      setOver({ xp });
+      return;
+    }
+    const id = setTimeout(() => setTime((t) => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [time, over]);
+
+  const w = queue[i % queue.length];
+
+  const answer = (saidReal) => {
+    const right = saidReal === w[1];
+    setFlash({ right, real: w[1], def: w[2] });
+    setScore((s) => Math.max(0, s + (right ? 1 : -1)));
+    setTimeout(() => {
+      setFlash(null);
+      setI((x) => x + 1);
+    }, right ? 700 : 1400);
+  };
+
+  const reset = () => {
+    setQueue(shuffle(JARGON));
+    setI(0);
+    setScore(0);
+    setTime(45);
+    setOver(null);
+  };
+
+  return (
+    <GameShell
+      title="Jargon or Junk"
+      sub={over ? "" : `${time}s left · score ${score} · a wrong call costs a point`}
+      onClose={onClose}
+    >
+      {over ? (
+        <GameOver
+          headline={`${score} called right`}
+          detail="Half these words run real boardrooms. The other half I invented. Knowing which is which is most of what business fluency actually is."
+          xp={over.xp}
+          onAgain={reset}
+          onClose={onClose}
+        />
+      ) : (
+        <>
+          <div style={{ height: 4, background: C.sky, marginBottom: 20 }}>
+            <div style={{ height: "100%", width: `${(time / 45) * 100}%`, background: C.blue }} />
+          </div>
+          <div
+            style={{
+              border: `1.5px solid ${flash ? (flash.right ? C.blue : C.slate) : C.rule}`,
+              background: flash?.right ? C.sky : C.white,
+              padding: "34px 20px",
+              textAlign: "center",
+              marginBottom: 16,
+              minHeight: 150,
+              borderRadius: 2,
+            }}
+          >
+            <div className="serif" style={{ fontSize: 30, fontWeight: 600 }}>{w[0]}</div>
+            {flash && (
+              <>
+                <div className="mono" style={{ fontSize: 12, color: flash.right ? C.blue : C.slate, marginTop: 10 }}>
+                  {flash.real ? "REAL TERM" : "PURE JUNK"}
+                </div>
+                {flash.def && (
+                  <div style={{ fontSize: 13, color: C.ink, marginTop: 6 }}>{flash.def}</div>
+                )}
+              </>
+            )}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <button className="btn" style={{ padding: "16px 0" }} onClick={() => answer(true)}>
+              Real term
+            </button>
+            <button className="btn ghost" style={{ padding: "16px 0" }} onClick={() => answer(false)}>
+              I made it up
+            </button>
+          </div>
+        </>
+      )}
+    </GameShell>
+  );
+}
+
+/* ---- 04. Metric Sprint ---- */
+function MetricSprint({ onClose, onDone }) {
+  const N = 6;
+  const build = () =>
+    shuffle(METRIC_TEMPLATES)
+      .slice(0, N)
+      .map((f) => {
+        const p = f();
+        return { ...p, options: shuffle([p.answer, ...p.wrong]) };
+      });
+
+  const [qs, setQs] = useState(build);
+  const [i, setI] = useState(0);
+  const [pick, setPick] = useState(null);
+  const [right, setRight] = useState(0);
+  const [over, setOver] = useState(null);
+
+  const q = qs[i];
+
+  const choose = (o) => {
+    if (pick !== null) return;
+    setPick(o);
+    if (o === q.answer) setRight((r) => r + 1);
+  };
+
+  const next = () => {
+    if (i === N - 1) {
+      const correct = right;
+      const xp = Math.round((correct / N) * 30);
+      onDone("metric", xp, correct);
+      setOver({ correct, xp });
+    } else {
+      setI(i + 1);
+      setPick(null);
+    }
+  };
+
+  const reset = () => {
+    setQs(build());
+    setI(0);
+    setPick(null);
+    setRight(0);
+    setOver(null);
+  };
+
+  return (
+    <GameShell
+      title="Metric Sprint"
+      sub={over ? "" : `Question ${i + 1} of ${N} · ${right} right`}
+      onClose={onClose}
+    >
+      {over ? (
+        <GameOver
+          headline={`${over.correct}/${N} right`}
+          detail="Every run generates fresh numbers, so there's nothing to memorise — only the formulas carry over."
+          xp={over.xp}
+          onAgain={reset}
+          onClose={onClose}
+        />
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: 3, marginBottom: 18 }}>
+            {qs.map((_, n) => (
+              <div
+                key={n}
+                style={{ flex: 1, height: 4, background: n < i ? C.blue : n === i ? C.deep : C.sky }}
+              />
+            ))}
+          </div>
+          <p style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.45, margin: "0 0 18px" }}>{q.q}</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {q.options.map((o) => {
+              const isAns = o === q.answer;
+              const chosen = pick === o;
+              let bg = C.white,
+                bd = C.rule,
+                fg = C.ink;
+              if (pick !== null) {
+                if (isAns) {
+                  bg = C.sky;
+                  bd = C.blue;
+                  fg = C.deep;
+                } else if (chosen) {
+                  bd = C.slate;
+                  fg = C.slate;
+                }
+              }
+              return (
+                <button
+                  key={o}
+                  onClick={() => choose(o)}
+                  className="mono"
+                  style={{
+                    border: `1.5px solid ${bd}`,
+                    background: bg,
+                    color: fg,
+                    padding: "14px 12px",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    cursor: pick === null ? "pointer" : "default",
+                    borderRadius: 2,
+                  }}
+                >
+                  {o}
+                </button>
+              );
+            })}
+          </div>
+          {pick !== null && (
+            <div style={{ marginTop: 16 }}>
+              <p style={{ fontSize: 13, color: C.slate, borderLeft: `2px solid ${C.blue}`, paddingLeft: 10, lineHeight: 1.5 }}>
+                {q.why}
+              </p>
+              <button className="btn" style={{ width: "100%", marginTop: 12 }} onClick={next}>
+                {i === N - 1 ? "See your score" : "Next"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </GameShell>
+  );
+}
+
+/* ---- 05. Startup Runway ---- */
+function StartupRunway({ onClose, onDone }) {
+  const START = 8000;
+  const [deck, setDeck] = useState(() => shuffle(SCENARIOS).slice(0, 6));
+  const [i, setI] = useState(0);
+  const [cash, setCash] = useState(START);
+  const [cust, setCust] = useState(120);
+  const [result, setResult] = useState(null); // chosen option
+  const [over, setOver] = useState(null);
+
+  const s = deck[i];
+
+  const choose = (o) => {
+    if (result) return;
+    const revenue = Math.round(cust * 2.5); // each customer throws off ~$2.50 profit this round
+    setCash((c) => c + o.cash + revenue);
+    setCust((c) => Math.max(0, c + o.cust));
+    setResult({ ...o, revenue });
+  };
+
+  const next = () => {
+    if (i === deck.length - 1) {
+      const score = Math.round(cash / 100);
+      const xp = Math.max(5, Math.min(40, Math.round(((cash - START) / START) * 25 + 15)));
+      onDone("runway", xp, score);
+      setOver({ xp });
+    } else {
+      setI(i + 1);
+      setResult(null);
+    }
+  };
+
+  const reset = () => {
+    setDeck(shuffle(SCENARIOS).slice(0, 6));
+    setI(0);
+    setCash(START);
+    setCust(120);
+    setResult(null);
+    setOver(null);
+  };
+
+  return (
+    <GameShell title="Startup Runway" sub={over ? "" : `Decision ${i + 1} of ${deck.length}`} onClose={onClose}>
+      {over ? (
+        <GameOver
+          headline={money(cash)}
+          detail={
+            cash <= 0
+              ? "You ran out of cash. Profitable businesses die of cash flow problems all the time — that's the lesson."
+              : `You started with ${money(START)} and ${120} customers, and finished with ${cust}. Every choice traded cash for growth, or growth for safety.`
+          }
+          xp={over.xp}
+          onAgain={reset}
+          onClose={onClose}
+        />
+      ) : (
+        <>
+          <div
+            style={{
+              display: "flex",
+              gap: 24,
+              padding: "12px 16px",
+              background: C.sky,
+              border: `1px solid ${C.rule}`,
+              marginBottom: 18,
+            }}
+          >
+            <div>
+              <div className="eyebrow">Cash</div>
+              <div className="mono" style={{ fontSize: 20, fontWeight: 600, color: cash > 0 ? C.blue : C.slate }}>
+                {money(cash)}
+              </div>
+            </div>
+            <div>
+              <div className="eyebrow">Customers</div>
+              <div className="mono" style={{ fontSize: 20, fontWeight: 600 }}>{cust}</div>
+            </div>
+          </div>
+
+          <p style={{ fontSize: 16, lineHeight: 1.55, margin: "0 0 18px" }}>{s.setup}</p>
+
+          {!result ? (
+            <div style={{ display: "grid", gap: 8 }}>
+              {s.options.map((o) => (
+                <button
+                  key={o.label}
+                  onClick={() => choose(o)}
+                  style={{
+                    textAlign: "left",
+                    border: `1.5px solid ${C.rule}`,
+                    background: C.white,
+                    padding: "14px 16px",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    fontFamily: "'Public Sans',sans-serif",
+                    cursor: "pointer",
+                    borderRadius: 2,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.blue)}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.rule)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <div
+                style={{
+                  border: `1px solid ${C.blue}`,
+                  background: C.sky,
+                  padding: "14px 16px",
+                }}
+              >
+                <div className="mono" style={{ fontSize: 12, color: C.deep, marginBottom: 6 }}>
+                  {result.cash >= 0 ? "+" : "−"}{money(Math.abs(result.cash))} decision · +{money(result.revenue)} sales ·{" "}
+                  {result.cust >= 0 ? "+" : "−"}{Math.abs(result.cust)} customers
+                </div>
+                <p style={{ fontSize: 14, lineHeight: 1.55, margin: 0 }}>{result.lesson}</p>
+              </div>
+              <button className="btn" style={{ width: "100%", marginTop: 14 }} onClick={next}>
+                {i === deck.length - 1 ? "See where you landed" : "Next decision"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </GameShell>
+  );
+}
+
+/* ========================== Checklist ========================== */
+function Checklist({ checked, scores, workCount, unlocked, onCourse, onReset, onStudy }) {
+  const [filter, setFilter] = useState("");
+  const [hideDone, setHideDone] = useState(false);
+
+  return (
+    <section className="card" style={{ padding: "24px 26px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div className="eyebrow">The syllabus</div>
+          <h2 className="serif" style={{ fontSize: 24, margin: "4px 0 2px" }}>
+            Learn it, work it, then prove it
+          </h2>
+          <p className="mono" style={{ fontSize: 11, color: C.slate, margin: 0 }}>
+            3 lessons · 3 pieces of work (+20 XP) · quiz unlocks after · 8/10 = 40 XP · 9/10 = 60 XP · 10/10 = 100 XP
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <input
+            className="inp"
+            style={{ width: 200 }}
+            placeholder="Filter topics"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <label
+            style={{ fontSize: 13, color: C.slate, display: "flex", gap: 6, alignItems: "center" }}
+          >
+            <input
+              type="checkbox"
+              checked={hideDone}
+              onChange={() => setHideDone(!hideDone)}
+              style={{ accentColor: C.blue }}
+            />
+            Hide learned
+          </label>
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 22,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 26,
+        }}
+      >
+        {TOPICS.map((group) => {
+          const items = group.items.filter(
+            (i) =>
+              i.toLowerCase().includes(filter.toLowerCase()) && !(hideDone && checked[i])
+          );
+          if (!items.length) return null;
+          const done = group.items.filter((i) => checked[i]).length;
+          const pct = Math.round((done / group.items.length) * 100);
+          return (
+            <div key={group.cat}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    margin: 0,
+                    textTransform: "uppercase",
+                    letterSpacing: ".06em",
+                  }}
+                >
+                  {group.cat}
+                </h3>
+                <span className="mono" style={{ fontSize: 11, color: C.slate }}>
+                  {done}/{group.items.length}
+                </span>
+              </div>
+              <div style={{ height: 3, background: C.sky, margin: "8px 0 10px" }}>
+                <div
+                  className="bar"
+                  style={{ height: "100%", width: `${pct}%`, background: C.blue }}
+                />
+              </div>
+
+              {items.map((name) => {
+                const on = !!checked[name];
+                const best = scores[name];
+                const wc = workCount(name);
+                const started = wc.total > 0;
+                const ready = unlocked(name);
+                return (
+                  <div
+                    key={name}
+                    className="row"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 9,
+                      padding: "6px 4px",
+                    }}
+                  >
+                    <button
+                      onClick={() => (on ? onReset(name) : onCourse(name))}
+                      aria-label={on ? `Uncheck ${name}` : `Open the ${name} course`}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        flexShrink: 0,
+                        border: `1.5px solid ${on ? C.blue : C.rule}`,
+                        background: on ? C.blue : C.white,
+                        color: "#fff",
+                        fontSize: 11,
+                        lineHeight: 1,
+                        padding: 0,
+                        cursor: "pointer",
+                        borderRadius: 2,
+                      }}
+                    >
+                      {on ? "✓" : ""}
+                    </button>
+                    <span
+                      style={{
+                        fontSize: 14,
+                        flex: 1,
+                        color: on ? C.slate : C.ink,
+                        textDecoration: on ? "line-through" : "none",
+                      }}
+                    >
+                      {name}
+                    </span>
+
+                    {on ? (
+                      <span className="mono" style={{ fontSize: 10, color: C.blue }}>
+                        {best ? `${best}%` : checked[name]?.slice(5)}
+                      </span>
+                    ) : (
+                      <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {started && (
+                          <span className="mono" style={{ fontSize: 10, color: ready ? C.blue : C.slate }}>
+                            {ready ? "QUIZ READY" : `WORK ${wc.done}/${wc.total}`}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => onStudy(name)}
+                          className="mono"
+                          title="Make this the week's focus"
+                          style={{
+                            border: "none",
+                            background: "none",
+                            color: C.slate,
+                            fontSize: 10,
+                            cursor: "pointer",
+                            letterSpacing: ".08em",
+                          }}
+                        >
+                          FOCUS
+                        </button>
+                        <button
+                          onClick={() => onCourse(name)}
+                          className="mono"
+                          style={{
+                            border: `1px solid ${ready ? C.blue : C.rule}`,
+                            background: ready ? C.blue : C.white,
+                            color: ready ? "#fff" : C.blue,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: "3px 6px",
+                            cursor: "pointer",
+                            letterSpacing: ".08em",
+                            borderRadius: 2,
+                          }}
+                        >
+                          {started ? (ready ? "QUIZ" : "RESUME") : "START"}
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   Mount with an error boundary so a failure never blanks the page
+   ============================================================ */
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
   render() {
     if (this.state.error) {
       return (
-        <div className="ledger-app">
-          <div className="wrap">
-            <div className="wordmark">Ledger</div>
-            <p className="error-box" style={{ marginTop: 16 }}>
-              Something went wrong loading the app: {String(this.state.error.message || this.state.error)}
-            </p>
-            <p className="hint">Try reloading. If it persists, check your internet connection.</p>
-          </div>
+        <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 640, margin: "60px auto", padding: "0 24px", color: "#0A1A33" }}>
+          <h1 style={{ fontSize: 24 }}>The Business Ledger</h1>
+          <p style={{ color: "#8B3A3A" }}>Something went wrong loading the app: {String(this.state.error.message || this.state.error)}</p>
+          <p style={{ color: "#5A6B85", fontSize: 14 }}>Try reloading. If it persists, check your internet connection.</p>
         </div>
       );
     }
@@ -484,7 +3001,7 @@ class ErrorBoundary extends React.Component {
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <ErrorBoundary><Ledger /></ErrorBoundary>
+  <ErrorBoundary><BusinessLedger /></ErrorBoundary>
 );
 </script>
 </body>
