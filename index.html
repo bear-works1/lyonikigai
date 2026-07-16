@@ -3,81 +3,64 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>The Business Ledger — a weekly learning tracker</title>
+<title>The Business Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  html, body { margin: 0; padding: 0; }
+  html, body { margin: 0; background: #FFFFFF; }
   #root { min-height: 100vh; }
+  /* API key bar */
+  #keybar { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
+    background: #0A1A33; color: #EAF1FF; display: flex; gap: 10px; align-items: center;
+    padding: 8px 16px; flex-wrap: wrap; }
+  #keybar input { flex: 1; min-width: 180px; background: #12213c; border: 1px solid #24406e;
+    color: #EAF1FF; padding: 6px 10px; border-radius: 2px; font-family: inherit; font-size: 12px; }
+  #keybar button { background: #1B4FD8; color: #fff; border: none; padding: 6px 14px;
+    border-radius: 2px; font-family: inherit; font-weight: 600; cursor: pointer; }
+  #keybar a { color: #8fb0ff; }
+  #keybar .ok { color: #7CF0B0; }
+  #boot { font-family: system-ui, sans-serif; color: #5A6B85; padding: 40px; }
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel" data-presets="react">
+<div id="root"><div id="boot">Loading The Business Ledger…</div></div>
+
+<script>
+  // localStorage-backed store shim, mirroring the {value} shape the app expects
+  var store = {
+    get: function (k) {
+      try { var v = localStorage.getItem(k); return v == null ? null : { key: k, value: v }; }
+      catch (e) { return null; }
+    },
+    set: function (k, v) {
+      try { localStorage.setItem(k, v); return { key: k, value: v }; } catch (e) { return null; }
+    },
+  };
+  // Supabase client + anonymous session (API key lives server-side in the edge function)
+  var SUPABASE_URL = "https://zzawnvosskllubxxfmhg.supabase.co";
+  var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_optSiGxD6xdgA3Lh4Ee1Qw_SNUMTbR2";
+  var supa = null;
+  var authReady = Promise.resolve();
+  (function () {
+    try {
+      if (window.supabase && window.supabase.createClient) {
+        supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        authReady = (async function () {
+          try {
+            var r = await supa.auth.getSession();
+            if (!r.data.session) await supa.auth.signInAnonymously();
+          } catch (e) { /* anonymous sign-ins may be disabled */ }
+        })();
+      }
+    } catch (e) { supa = null; }
+  })();
+</script>
+
+<script type="text/plain" id="ledger-src">
 const { useState, useEffect, useMemo, useRef } = React;
-
-/* ============================================================
-   Standalone runtime shims (Supabase-backed)
-   ============================================================ */
-const SUPABASE_URL = "https://zzawnvosskllubxxfmhg.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_optSiGxD6xdgA3Lh4Ee1Qw_SNUMTbR2";
-
-let supa = null;
-let authReady = Promise.resolve();
-
-function initSupa() {
-  try {
-    if (window.supabase && window.supabase.createClient) {
-      supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      authReady = (async () => {
-        try {
-          const { data: { session } } = await supa.auth.getSession();
-          if (!session) await supa.auth.signInAnonymously();
-        } catch (e) { /* anonymous sign-ins may be disabled in the dashboard */ }
-      })();
-    }
-  } catch (e) { supa = null; }
-}
-initSupa();
-
-/* Persistence: Supabase per-user KV when signed in, always mirrored to
-   localStorage so the app still remembers progress if the backend is down. */
-const storage = {
-  async get(key) {
-    try {
-      if (supa) {
-        await authReady;
-        const { data: { user } } = await supa.auth.getUser();
-        if (user) {
-          const { data, error } = await supa
-            .from("app_state").select("data")
-            .eq("user_id", user.id).eq("key", key).maybeSingle();
-          if (!error && data) return { value: JSON.stringify(data.data) };
-        }
-      }
-    } catch (_) { /* fall through to local */ }
-    try { const v = localStorage.getItem(key); if (v != null) return { value: v }; } catch (_) {}
-    return null;
-  },
-  async set(key, value) {
-    try { localStorage.setItem(key, value); } catch (_) {}
-    try {
-      if (supa) {
-        await authReady;
-        const { data: { user } } = await supa.auth.getUser();
-        if (user) {
-          await supa.from("app_state").upsert(
-            { user_id: user.id, key, data: JSON.parse(value) },
-            { onConflict: "user_id,key" }
-          );
-        }
-      }
-    } catch (_) { /* local copy already saved */ }
-  },
-};
-window.storage = storage;
 
 
 /* ============================================================
@@ -424,7 +407,7 @@ const METRIC_TEMPLATES = [
     return {
       q: `You spent ${money(spend)} on marketing and it won ${n} new customers. What's the CAC?`,
       answer: money(a),
-      wrong: [money(a * 2), money(n / spend > 0 ? spend / (n * 2) : 1), money(spend - n)],
+      wrong: [money(a * 2), money(a / 2), money(spend - n)],
       why: "CAC = total acquisition spend ÷ new customers won.",
     };
   },
@@ -527,7 +510,8 @@ const fmtRange = (mon) => {
   return `${mon.toLocaleDateString("en-US", m)} – ${sun.toLocaleDateString("en-US", m)}`;
 };
 
-/* ---------- Claude calls (routed through Supabase edge function) ---------- */
+/* ---------- Claude calls (via Supabase edge function; key is server-side) ---------- */
+const KEY_MSG = "The AI service is still connecting — try again in a moment.";
 async function askClaude(messages, tools) {
   if (!supa) throw new Error("Backend unavailable — the Supabase library didn't load.");
   await authReady;
@@ -536,10 +520,7 @@ async function askClaude(messages, tools) {
   const { data, error } = await supa.functions.invoke("claude-proxy", { body });
   if (error) {
     let msg = error.message || "Request failed";
-    try {
-      const ctx = error.context && (await error.context.json());
-      if (ctx && ctx.error) msg = ctx.error;
-    } catch (_) { /* ignore */ }
+    try { const ctx = error.context && (await error.context.json()); if (ctx && ctx.error) msg = ctx.error; } catch (_) {}
     throw new Error(msg);
   }
   if (data && data.error) throw new Error(data.error);
@@ -547,9 +528,13 @@ async function askClaude(messages, tools) {
 }
 const parseJSON = (text) => {
   const clean = text.replace(/```json|```/g, "").trim();
-  const s = clean.indexOf("[") >= 0 ? clean.indexOf("[") : clean.indexOf("{");
-  const e = clean.lastIndexOf("]") >= 0 ? clean.lastIndexOf("]") : clean.lastIndexOf("}");
-  return JSON.parse(clean.slice(s, e + 1));
+  const fb = clean.indexOf("[");
+  const fo = clean.indexOf("{");
+  const start = fb === -1 ? fo : fo === -1 ? fb : Math.min(fb, fo);
+  if (start < 0) throw new Error("no JSON found");
+  const close = clean[start] === "[" ? "]" : "}";
+  const end = clean.lastIndexOf(close);
+  return JSON.parse(clean.slice(start, end + 1));
 };
 
 /* ============================================================ */
@@ -577,7 +562,7 @@ function BusinessLedger() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await window.storage.get("ledger:v1");
+        const r = store.get("ledger:v1");
         if (r && r.value) {
           const s = JSON.parse(r.value);
           setFocus(s.focus || {});
@@ -603,7 +588,7 @@ function BusinessLedger() {
     if (!loaded) return;
     (async () => {
       try {
-        await window.storage.set(
+        store.set(
           "ledger:v1",
           JSON.stringify({
             focus, logs, challenges, checked, freeBlocks, xp, scores, bests,
@@ -1232,7 +1217,7 @@ Respond with ONLY a JSON array of strings. No preamble, no markdown.`,
       ]);
       parseJSON(text).forEach((c) => add(String(c)));
     } catch (e) {
-      setErr("Could not build challenges. Try again.");
+      setErr(e && e.message === "NO_KEY" ? KEY_MSG : "Could not build challenges. Try again.");
     }
     setBusy(false);
   };
@@ -1355,7 +1340,7 @@ Respond with ONLY a JSON array, no markdown:
       );
       setItems(parseJSON(text));
     } catch (e) {
-      setErr("Search came back empty. Try rewording the topic.");
+      setErr(e && e.message === "NO_KEY" ? KEY_MSG : "Search came back empty. Try rewording the topic.");
     }
     setBusy(false);
   };
@@ -1467,7 +1452,7 @@ where day is 0 for Monday through 6 for Sunday. If a day is not visible in the s
       if (!found.length) setErr("No open blocks found. Try a clearer or wider screenshot.");
       setBlocks(found);
     } catch (e) {
-      setErr("Couldn't read that calendar. Make sure times and events are legible.");
+      setErr(e && e.message === "NO_KEY" ? KEY_MSG : "Couldn't read that calendar. Make sure times and events are legible.");
     }
     setBusy(false);
   };
@@ -1636,7 +1621,7 @@ Work must be active — calculate something, tear down a real company, write a p
         if (!c.lessons?.length || !c.work?.length) throw new Error("bad shape");
         cache(c);
       } catch (e) {
-        setErr("Couldn't build the course. Close and open it again.");
+        setErr(e && e.message === "NO_KEY" ? KEY_MSG : "Couldn't build the course. Close and open it again.");
       }
       setBusy(false);
     })();
@@ -1836,7 +1821,7 @@ Respond with ONLY a JSON array of 10 objects, no markdown:
         if (parsed.length < 10) throw new Error("short quiz");
         setQs(parsed);
       } catch (e) {
-        setErr("Couldn't build the quiz. Close and try again.");
+        setErr(e && e.message === "NO_KEY" ? KEY_MSG : "Couldn't build the quiz. Close and try again.");
       }
       setBusy(false);
     })();
@@ -2536,7 +2521,9 @@ function MetricSprint({ onClose, onDone }) {
       .slice(0, N)
       .map((f) => {
         const p = f();
-        return { ...p, options: shuffle([p.answer, ...p.wrong]) };
+        const opts = [p.answer];
+        for (const w of p.wrong) if (!opts.includes(w) && opts.length < 4) opts.push(w);
+        return { ...p, options: shuffle(opts) };
       });
 
   const [qs, setQs] = useState(build);
@@ -2980,9 +2967,7 @@ function Checklist({ checked, scores, workCount, unlocked, onCourse, onReset, on
   );
 }
 
-/* ============================================================
-   Mount with an error boundary so a failure never blanks the page
-   ============================================================ */
+
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
@@ -2991,8 +2976,8 @@ class ErrorBoundary extends React.Component {
       return (
         <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 640, margin: "60px auto", padding: "0 24px", color: "#0A1A33" }}>
           <h1 style={{ fontSize: 24 }}>The Business Ledger</h1>
-          <p style={{ color: "#8B3A3A" }}>Something went wrong loading the app: {String(this.state.error.message || this.state.error)}</p>
-          <p style={{ color: "#5A6B85", fontSize: 14 }}>Try reloading. If it persists, check your internet connection.</p>
+          <p style={{ color: "#8B3A3A" }}>Something went wrong: {String(this.state.error.message || this.state.error)}</p>
+          <p style={{ color: "#5A6B85", fontSize: 14 }}>Try reloading the page.</p>
         </div>
       );
     }
@@ -3000,9 +2985,40 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <ErrorBoundary><BusinessLedger /></ErrorBoundary>
-);
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<ErrorBoundary><BusinessLedger /></ErrorBoundary>);
+</script>
+<script>
+  (function () {
+    function fail(msg) {
+      var r = document.getElementById("root");
+      if (r) r.innerHTML = '<div style="font-family:system-ui,sans-serif;max-width:640px;margin:60px auto;padding:0 24px;color:#0A1A33"><h1>The Business Ledger</h1><p style="color:#8B3A3A">Failed to start: ' + msg + '</p><p style="color:#5A6B85;font-size:14px">Check your internet connection and reload.</p></div>';
+    }
+    function run() {
+      try {
+        if (!window.React || !window.ReactDOM) { fail("React failed to load from the CDN."); return; }
+        var src = document.getElementById("ledger-src").textContent;
+        var out = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
+        var s = document.createElement("script");
+        s.textContent = out;
+        document.body.appendChild(s);
+      } catch (e) {
+        fail(e && e.message ? e.message : String(e));
+        throw e;
+      }
+    }
+    function start() {
+      if (window.Babel) { run(); return; }
+      // Babel didn't load from the primary CDN — try a fallback before giving up.
+      var fb = document.createElement("script");
+      fb.src = "https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js";
+      fb.onload = run;
+      fb.onerror = function () { fail("Babel failed to load from both CDNs."); };
+      document.head.appendChild(fb);
+    }
+    if (document.readyState === "complete") start();
+    else window.addEventListener("load", start);
+  })();
 </script>
 </body>
 </html>
